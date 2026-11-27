@@ -1,0 +1,263 @@
+<?php
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * This file is part of plugin_casc, a plugin for Cacti.
+ * https://github.com/somethingwithproof/plugin_casc
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 2 of the License, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ */
+
+declare(strict_types=1);
+
+namespace Somethingwithproof\Casc\Secret;
+
+/**
+ * Central security policy governing hard-blocked installation keys, redacted
+ * credential columns, and the declarative settings allowlist.
+ */
+final class SecretPolicy {
+	public const REDACTED_MARKER = '<redacted>';
+
+	/**
+	 * Installation-local cryptographic keys that must never be exported or
+	 * managed via CasC manifests.
+	 */
+	public const BLOCKED_SETTINGS = [
+		'secret_encryption_key',
+		'csrf_secret',
+		'rsa_private_key',
+		'rsa_public_key',
+		'rsa_fingerprint',
+		'rrdp_fingerprint',
+		'rrdp_fingerprint_backup',
+	];
+
+	/**
+	 * The four Cacti 1.2 settings password keys (textbox_password in
+	 * include/global_settings.php) that are always redacted on export and
+	 * resolved via SecretResolver on apply.
+	 */
+	public const SECRET_SETTINGS = [
+		'snmp_password',
+		'snmp_priv_passphrase',
+		'ldap_specific_password',
+		'settings_smtp_password',
+	];
+
+	/**
+	 * Credential columns across Cacti 1.2 tables that must never be exported in
+	 * plaintext.
+	 */
+	public const SECRET_COLUMNS = [
+		'host' => [
+			'snmp_community',
+			'snmp_password',
+			'snmp_priv_passphrase',
+		],
+		'poller' => [
+			'dbpass',
+		],
+		'automation_snmp_items' => [
+			'snmp_community',
+			'snmp_password',
+			'snmp_priv_passphrase',
+		],
+		'snmpagent_managers' => [
+			'snmp_community',
+			'snmp_password',
+			'snmp_priv_passphrase',
+		],
+		'user_domains_ldap' => [
+			'specific_password',
+		],
+	];
+
+	/**
+	 * Explicit allowlist of declarative Cacti 1.2 settings managed in
+	 * spec.settings.values. Runtime counters (stats_*, poller_lastrun,
+	 * install_*, *_version) and local binary paths (path_*) are excluded.
+	 */
+	public const DECLARATIVE_SETTINGS = [
+		'poller_enabled',
+		'poller_type',
+		'poller_interval',
+		'cron_interval',
+		'concurrent_processes',
+		'max_threads',
+		'php_servers',
+		'script_timeout',
+		'max_get_size',
+		'snmp_ver',
+		'snmp_community',
+		'snmp_username',
+		'snmp_password',
+		'snmp_auth_protocol',
+		'snmp_priv_passphrase',
+		'snmp_priv_protocol',
+		'snmp_context',
+		'snmp_engine_id',
+		'snmp_port',
+		'snmp_timeout',
+		'snmp_retries',
+		'availability_method',
+		'ping_method',
+		'ping_port',
+		'ping_timeout',
+		'ping_retries',
+		'ping_failure_count',
+		'ping_recovery_count',
+		'log_verbosity',
+		'log_destination',
+		'log_pstats',
+		'log_pwarn',
+		'log_perror',
+		'log_validation',
+		'rrdtool_version',
+		'default_image_format',
+		'default_rra_id',
+		'auth_method',
+		'auth_cache_enabled',
+		'guest_user',
+		'user_template',
+		'ldap_server',
+		'ldap_port',
+		'ldap_port_ssl',
+		'ldap_version',
+		'ldap_encryption',
+		'ldap_dn',
+		'ldap_mode',
+		'ldap_specific_dn',
+		'ldap_specific_password',
+		'settings_how',
+		'settings_from_email',
+		'settings_from_name',
+		'settings_smtp_host',
+		'settings_smtp_port',
+		'settings_smtp_username',
+		'settings_smtp_password',
+		'settings_smtp_secure',
+		'settings_smtp_timeout',
+		'selective_device_debug',
+		'boost_rrd_update_enable',
+		'boost_rrd_update_interval',
+		'boost_rrd_update_max_records',
+		'boost_rrd_update_max_records_per_select',
+		'boost_rrd_update_string_length',
+		'boost_poller_mem_limit',
+		'boost_png_cache_enable',
+		'storage_location',
+		'rrdp_server',
+		'rrdp_port',
+		'rrdp_load_balancing',
+		'rrdp_server_backup',
+		'rrdp_port_backup',
+		'automation_graphs_enabled',
+		'automation_tree_enabled',
+		'automation_email',
+	];
+
+	/**
+	 * Installation-local path settings exported under reference.paths for
+	 * visibility and drift reporting, never applied blindly across hosts.
+	 */
+	public const REFERENCE_PATH_SETTINGS = [
+		'path_rrdtool',
+		'path_php_binary',
+		'path_snmpwalk',
+		'path_snmpget',
+		'path_snmpbulkwalk',
+		'path_snmpgetnext',
+		'path_snmptrap',
+		'path_cactilog',
+		'path_stderrlog',
+		'path_spine',
+		'path_spine_config',
+	];
+
+	public static function isBlockedSetting(string $name): bool {
+		if (in_array($name, self::BLOCKED_SETTINGS, true)) {
+			return true;
+		}
+
+		return str_contains(strtolower($name), 'secret_encryption_key')
+			|| str_contains(strtolower($name), 'csrf_secret')
+			|| str_starts_with(strtolower($name), 'rsa_private');
+	}
+
+	public static function isSecretSetting(string $name): bool {
+		return in_array($name, self::SECRET_SETTINGS, true) || $name === 'snmp_community';
+	}
+
+	public static function isDeclarativeSetting(string $name): bool {
+		if (self::isBlockedSetting($name)) {
+			return false;
+		}
+
+		return in_array($name, self::DECLARATIVE_SETTINGS, true);
+	}
+
+	public static function isReferencePathSetting(string $name): bool {
+		return in_array($name, self::REFERENCE_PATH_SETTINGS, true);
+	}
+
+	public static function isSecretColumn(string $table, string $column): bool {
+		return in_array($column, self::SECRET_COLUMNS[$table] ?? [], true);
+	}
+
+	public static function isSecretReference(string $value): bool {
+		return str_starts_with($value, 'env:')
+			|| str_starts_with($value, 'file:')
+			|| str_starts_with($value, 'vault:');
+	}
+
+	/**
+	 * Redact a secret value for manifest export. Never returns plaintext.
+	 */
+	public static function exportSecret(string $logicalKey, string $rawValue, bool $omitSecrets = false, bool $usePlaceholderRef = true): ?string {
+		if ($rawValue === '' || $omitSecrets) {
+			return null;
+		}
+
+		if (self::isSecretReference($rawValue)) {
+			return $rawValue;
+		}
+
+		if (!$usePlaceholderRef) {
+			return self::REDACTED_MARKER;
+		}
+
+		$normalized = strtoupper((string) preg_replace('/[^A-Za-z0-9]+/', '_', $logicalKey));
+		$normalized = trim($normalized, '_');
+
+		if ($normalized === '') {
+			$normalized = 'VALUE';
+		}
+
+		return 'env:CACTI_SECRET_' . $normalized;
+	}
+
+	/**
+	 * Mask any secret field before emitting diffs, logs, or audit records.
+	 */
+	public static function maskForDiff(string $value): string {
+		if ($value === '') {
+			return '';
+		}
+
+		if (self::isSecretReference($value)) {
+			return $value;
+		}
+
+		return self::REDACTED_MARKER;
+	}
+}
