@@ -21,27 +21,38 @@ declare(strict_types=1);
 
 namespace Somethingwithproof\Casc\Integration;
 
+use Somethingwithproof\Casc\Engine\CascService;
 use Somethingwithproof\Casc\Pages;
+use Somethingwithproof\Casc\Settings;
 
 /**
  * Plain-array API resource descriptors exposed to plugin_api via the
  * api_register_resources hook without any hard dependency on plugin_api.
  */
 final class ApiResources {
+	/**
+	 * Relative path to plugin_casc's static Config/State YAML schema file.
+	 */
 	private const SCHEMA_PATH = 'schema/casc.schema.yaml';
 
 	/**
-	 * Append CasC API resource descriptors to an existing resource registry list.
+	 * Return canonical plugin_api resource descriptors for plugin_casc.
 	 *
-	 * @param mixed $resources Existing resources list passed by api_register_resources hook.
-	 * @return list<array<string, mixed>> Combined list of API resource descriptors.
+	 * @param mixed                           $resources        Optional existing resources list passed by hook.
+	 * @param (callable(): CascService)|null  $serviceFactory   Optional lazy CascService factory.
+	 * @param (callable(): Settings)|null     $settingsProvider Optional lazy Settings factory.
+	 * @return list<array<string, mixed>> Canonical plugin_api resource descriptors.
 	 */
-	public static function register(mixed $resources = []): array {
+	public static function register(
+		mixed $resources = [],
+		?callable $serviceFactory = null,
+		?callable $settingsProvider = null,
+	): array {
 		$out = [];
 
 		if (is_array($resources)) {
 			foreach ($resources as $existing) {
-				if (is_array($existing)) {
+				if (is_array($existing) && is_string($existing['collection'] ?? null) && $existing['collection'] !== '') {
 					$normalized = [];
 
 					foreach ($existing as $k => $v) {
@@ -53,7 +64,7 @@ final class ApiResources {
 			}
 		}
 
-		foreach (self::descriptors() as $descriptor) {
+		foreach (self::descriptors($serviceFactory, $settingsProvider) as $descriptor) {
 			$out[] = $descriptor;
 		}
 
@@ -61,47 +72,85 @@ final class ApiResources {
 	}
 
 	/**
-	 * Build plain-array descriptors for CasC read and plan API endpoints.
+	 * Build canonical plain-array descriptors for plugin_api's api_register_resources hook.
 	 *
-	 * @return list<array{resource: string, plugin: string, methods: list<string>, readOnly: bool, realm: string, schema: string, description: string}>
+	 * @param (callable(): CascService)|null $serviceFactory   Optional lazy CascService factory.
+	 * @param (callable(): Settings)|null    $settingsProvider Optional lazy Settings factory.
+	 * @return list<array{plugin: string, collection: string, singleton: string, description: string, realm_read: string, schema: string, filter_fields: list<string>, order_fields: list<string>, handlers: array{list: callable(array<string, mixed>=): list<array<string, mixed>>, get: callable(string, array<string, mixed>=): (array<string, mixed>|null)}}>
 	 */
-	public static function descriptors(): array {
+	public static function descriptors(?callable $serviceFactory = null, ?callable $settingsProvider = null): array {
+		$buildSummary = static function () use ($serviceFactory, $settingsProvider): array {
+			$baselineConfigured = false;
+			$providers          = [];
+			$faultCount         = 0;
+			$recentAuditCount   = 0;
+			$lastApplyStatus    = null;
+			$lastApplyPlanHash  = null;
+
+			if ($settingsProvider !== null) {
+				$baseline           = trim($settingsProvider()->baselineFile);
+				$baselineConfigured = $baseline !== '' && is_file($baseline);
+			}
+
+			if ($serviceFactory !== null) {
+				$service          = $serviceFactory();
+				$providers        = array_map(static fn ($d): string => $d->slug, $service->pluginRegistry()->all());
+				$faultCount       = count($service->pluginRegistry()->faults());
+				$audits           = $service->repository()->getRecentAudits(10);
+				$recentAuditCount = count($audits);
+				$last             = $audits[0] ?? null;
+
+				if (is_array($last)) {
+					$lastApplyStatus   = is_scalar($last['status'] ?? null) ? (string) $last['status'] : null;
+					$lastApplyPlanHash = is_scalar($last['plan_hash'] ?? null) ? (string) $last['plan_hash'] : null;
+				}
+			}
+
+			return [
+				'id'                  => 'summary',
+				'name'                => 'cascStatus/summary',
+				'status'              => $faultCount > 0 ? 'degraded' : 'ok',
+				'baselineConfigured'  => $baselineConfigured,
+				'registeredProviders' => $providers,
+				'providerFaultCount'  => $faultCount,
+				'recentAuditCount'    => $recentAuditCount,
+				'lastApplyStatus'     => $lastApplyStatus,
+				'lastApplyPlanHash'   => $lastApplyPlanHash,
+				'schemaPath'          => self::SCHEMA_PATH,
+			];
+		};
+
 		return [
 			[
-				'resource'    => 'casc/export',
-				'plugin'      => 'casc',
-				'methods'     => ['GET'],
-				'readOnly'    => true,
-				'realm'       => Pages::OPERATOR,
-				'schema'      => self::SCHEMA_PATH,
-				'description' => 'Export redacted live Cacti configuration as canonical YAML or XML.',
-			],
-			[
-				'resource'    => 'casc/plan',
-				'plugin'      => 'casc',
-				'methods'     => ['POST'],
-				'readOnly'    => true,
-				'realm'       => Pages::OPERATOR,
-				'schema'      => self::SCHEMA_PATH,
-				'description' => 'Validate a submitted manifest and compute a deterministic reconciliation plan hash.',
-			],
-			[
-				'resource'    => 'casc/drift',
-				'plugin'      => 'casc',
-				'methods'     => ['GET'],
-				'readOnly'    => true,
-				'realm'       => Pages::VIEW,
-				'schema'      => self::SCHEMA_PATH,
-				'description' => 'Evaluate configuration drift between live Cacti state and the configured baseline manifest.',
-			],
-			[
-				'resource'    => 'casc/schema',
-				'plugin'      => 'casc',
-				'methods'     => ['GET'],
-				'readOnly'    => true,
-				'realm'       => Pages::VIEW,
-				'schema'      => self::SCHEMA_PATH,
-				'description' => 'Retrieve live JSON Schema Draft 2020-12 metadata across core and registered plugin CasC providers.',
+				'plugin'        => 'casc',
+				'collection'    => 'cascStatus',
+				'singleton'     => 'cascStatus',
+				'description'   => 'Configuration-as-Code status, registered plugin providers, and recent reconciliation audit summary.',
+				'realm_read'    => Pages::VIEW,
+				'schema'        => self::SCHEMA_PATH,
+				'filter_fields' => ['id', 'name', 'status'],
+				'order_fields'  => ['id', 'name'],
+				'handlers'      => [
+					'list' => static function (array $context = []) use ($buildSummary): array {
+						return [$buildSummary()];
+					},
+					'get' => static function (string $id, array $context = []) use ($buildSummary, $serviceFactory): ?array {
+						if ($id === 'summary') {
+							return $buildSummary();
+						}
+
+						if ($id === 'schema' && $serviceFactory !== null) {
+							return [
+								'id'     => 'schema',
+								'name'   => 'cascStatus/schema',
+								'status' => 'ok',
+								'schema' => $serviceFactory()->describeSchema(),
+							];
+						}
+
+						return null;
+					},
+				],
 			],
 		];
 	}

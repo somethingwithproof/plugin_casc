@@ -359,18 +359,40 @@ YAML);
 		$encoded = json_encode($sections, JSON_THROW_ON_ERROR);
 		$this->assertStringNotContainsString('/run/secrets', $encoded);
 
-		// api_register_resources appends plain-array descriptors referencing schema/casc.schema.yaml.
-		$existing = [['resource' => 'other/health', 'plugin' => 'other']];
-		$combined = ApiResources::register($existing);
-		$this->assertCount(5, $combined);
+		// api_register_resources returns canonical plugin_api descriptor referencing schema/casc.schema.yaml.
+		$existing = [['plugin' => 'other', 'collection' => 'otherHealth', 'realm_read' => 'other_view.php', 'handlers' => ['list' => static fn (): array => []]]];
+		$combined = ApiResources::register(
+			$existing,
+			static fn (): CascService => $service,
+			static fn (): Settings => new Settings([], $baseline, false)
+		);
+		$this->assertCount(2, $combined);
 
 		$cascResources = array_values(array_filter($combined, static fn (array $r): bool => ($r['plugin'] ?? '') === 'casc'));
-		$names         = array_map(static fn (array $r): string => (string) $r['resource'], $cascResources);
-		$this->assertSame(['casc/export', 'casc/plan', 'casc/drift', 'casc/schema'], $names);
+		$this->assertCount(1, $cascResources);
+		$res = $cascResources[0];
+		$this->assertSame('casc', $res['plugin']);
+		$this->assertSame('cascStatus', $res['collection']);
+		$this->assertMatchesRegularExpression('/^[a-z][A-Za-z0-9]{2,63}$/', (string) $res['collection']);
+		$this->assertSame('casc_view.php', $res['realm_read']);
+		$this->assertSame('schema/casc.schema.yaml', $res['schema']);
+		$this->assertIsArray($res['handlers']);
+		$this->assertIsCallable($res['handlers']['list'] ?? null);
+		$this->assertIsCallable($res['handlers']['get'] ?? null);
 
-		foreach ($cascResources as $res) {
-			$this->assertSame('schema/casc.schema.yaml', $res['schema']);
-		}
+		$listed = ($res['handlers']['list'])([]);
+		$this->assertCount(1, $listed);
+		$this->assertSame('summary', $listed[0]['id']);
+		$this->assertTrue($listed[0]['baselineConfigured']);
+
+		$fetched = ($res['handlers']['get'])('summary', []);
+		$this->assertIsArray($fetched);
+		$this->assertSame('cascStatus/summary', $fetched['name']);
+
+		$schemaEntry = ($res['handlers']['get'])('schema', []);
+		$this->assertIsArray($schemaEntry);
+		$this->assertSame('https://json-schema.org/draft/2020-12/schema', $schemaEntry['schema']['$schema']);
+		$this->assertNull(($res['handlers']['get'])('unknown', []));
 
 		// Verify static schema/casc.schema.yaml parses cleanly and preserves strict config/state split.
 		$schemaPath = dirname(__DIR__, 2) . '/schema/casc.schema.yaml';

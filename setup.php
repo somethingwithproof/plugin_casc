@@ -560,7 +560,15 @@ function casc_api_register_resources($resources = array()): array {
 		return array();
 	}
 
-	return \Somethingwithproof\Casc\Integration\ApiResources::register($resources);
+	return \Somethingwithproof\Casc\Integration\ApiResources::register(
+		$resources,
+		static function (): \Somethingwithproof\Casc\Engine\CascService {
+			return casc_service();
+		},
+		static function (): \Somethingwithproof\Casc\Settings {
+			return casc_settings();
+		}
+	);
 }
 
 /**

@@ -329,6 +329,10 @@ final class TemplateBridge {
 				continue;
 			}
 
+			if (is_array($compiled) && isset($compiled['xml']) && is_string($compiled['xml'])) {
+				$compiled = $compiled['xml'];
+			}
+
 			if (!is_string($compiled) || trim($compiled) === '') {
 				$errors[] = sprintf('compiler[%d] returned empty or non-string XML', $index);
 

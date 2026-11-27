@@ -227,7 +227,14 @@ final class LifecycleAndRepositoryCoverageTest extends TestCase {
 		$GLOBALS['__casc_mock']['api_plugin_is_enabled'] = static fn (): bool => true;
 		$this->assertCount(3, casc_doctor_register_checks(['mode' => 'list', 'plugin' => 'casc']));
 		$this->assertCount(1, casc_doctor_register_debug_info([]));
-		$this->assertCount(4, casc_api_register_resources([]));
+		$apiResources = casc_api_register_resources([]);
+		$this->assertCount(1, $apiResources);
+		$this->assertSame('casc', $apiResources[0]['plugin']);
+		$this->assertSame('cascStatus', $apiResources[0]['collection']);
+		$this->assertSame('casc_view.php', $apiResources[0]['realm_read']);
+		$this->assertIsArray($apiResources[0]['handlers']);
+		$this->assertArrayHasKey('list', $apiResources[0]['handlers']);
+		$this->assertArrayHasKey('get', $apiResources[0]['handlers']);
 		$liveSchema = casc_describe_schema([]);
 		$this->assertSame('https://json-schema.org/draft/2020-12/schema', $liveSchema['$schema']);
 

@@ -198,6 +198,15 @@ YAML;
 		$this->assertCount(2, $repo->importedTemplates);
 		$this->assertSame($validXml, $repo->importedTemplates[0]['payload']);
 
+		// 2b. Compiler returning structured array{xml: string} is accepted cleanly alongside string XML.
+		$arrayCompiler = static fn (string $yaml, array $ctx): array => [
+			'xml'    => $validXml,
+			'sha256' => hash('sha256', $validXml),
+			'hashes' => ['0123456789abcdef0123456789abcdef'],
+		];
+		$inspectedFromArray = TemplateBridge::inspectTemplateFile('templates/linux.yaml', $this->tempDir, null, [$arrayCompiler]);
+		$this->assertSame($validXml, $inspectedFromArray['xmlContent']);
+
 		// 3. Invalid compiled XML (XXE DOCTYPE, wrong root, malformed XML) is strictly rejected.
 		$badOutputs = [
 			'xxe'       => '<!DOCTYPE foo [<!ENTITY x SYSTEM "file:///etc/passwd">]><cacti/>',
