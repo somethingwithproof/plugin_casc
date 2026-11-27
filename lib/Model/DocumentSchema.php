@@ -31,6 +31,12 @@ final class DocumentSchema {
 	private const TOP_KEYS  = ['apiVersion', 'kind', 'metadata', 'spec', 'reference'];
 	private const SPEC_KEYS = ['settings', 'sites', 'pollers', 'templates', 'devices', 'trees', 'plugins'];
 
+	/**
+	 * Validate a parsed YAML or XML tree and construct a CascDocument.
+	 *
+	 * @param ParsedTree $tree Decoded document tree with line number metadata.
+	 * @return CascDocument Validated immutable manifest document.
+	 */
 	public static function build(ParsedTree $tree): CascDocument {
 		$errors = self::validateTree($tree);
 
@@ -54,7 +60,11 @@ final class DocumentSchema {
 	}
 
 	/**
-	 * @return list<ValidationError>
+	 * Validate top-level keys, apiVersion, kind, metadata scalars, spec domains,
+	 * and forbid auto-increment id fields.
+	 *
+	 * @param ParsedTree $tree Decoded document tree to validate.
+	 * @return list<ValidationError> List of schema validation errors.
 	 */
 	public static function validateTree(ParsedTree $tree): array {
 		$data   = $tree->data;
@@ -129,8 +139,11 @@ final class DocumentSchema {
 	 * Natural keys are required across all declarative resources; forbid raw
 	 * auto-increment "id" fields on core resources so manifests stay portable.
 	 *
-	 * @param array<array-key, mixed> $spec
-	 * @param list<ValidationError> $errors
+	 * @param array<array-key, mixed> $spec Manifest spec section.
+	 * @param string $basePath Path prefix for error reporting.
+	 * @param ParsedTree $tree Source parsed tree for line lookup.
+	 * @param list<ValidationError> $errors Validation error accumulator.
+	 * @return void
 	 */
 	private static function rejectAutoIncrementIds(array $spec, string $basePath, ParsedTree $tree, array &$errors): void {
 		foreach (['sites', 'pollers', 'devices', 'trees'] as $domain) {

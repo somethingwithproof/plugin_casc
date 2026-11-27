@@ -30,9 +30,13 @@ use Somethingwithproof\Casc\Extension\PluginProviderDescriptor;
  */
 final class PagesRenderer {
 	/**
-	 * @param list<array<string, mixed>> $audits
-	 * @param list<PluginProviderDescriptor> $providers
-	 * @param list<array{slug: string, phase: string, reason: string}> $faults
+	 * Render escaped HTML tables for recent CasC audit records, registered
+	 * plugin providers, and any isolated provider faults.
+	 *
+	 * @param list<array<string, mixed>> $audits Recent audit rows from plugin_casc_audit.
+	 * @param list<PluginProviderDescriptor> $providers Registered sibling plugin providers.
+	 * @param list<array{slug: string, phase: string, reason: string}> $faults Isolated provider faults.
+	 * @return string Escaped HTML markup.
 	 */
 	public static function renderAuditAndProviders(array $audits, array $providers, array $faults): string {
 		$html = '<table class="cactiTable"><thead><tr>'
@@ -95,7 +99,13 @@ final class PagesRenderer {
 	}
 
 	/**
-	 * @param list<string> $errors
+	 * Render escaped HTML for validation errors, plan output, and optional
+	 * hash-confirmed apply controls.
+	 *
+	 * @param Plan|null $plan Computed reconciliation plan or null.
+	 * @param list<string> $errors Validation or parse error messages.
+	 * @param bool $allowApply Whether to include the Administrator apply confirmation form.
+	 * @return string Escaped HTML markup.
 	 */
 	public static function renderPlanPreview(?Plan $plan, array $errors, bool $allowApply = false): string {
 		$html = '';

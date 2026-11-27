@@ -31,15 +31,103 @@ use Somethingwithproof\Casc\Secret\SecretResolver;
  * to registered casc_register_providers handlers with fault isolation.
  */
 final class PluginsProvider implements ResourceProvider {
+	/**
+	 * Construct the plugins provider backed by the fault-isolated plugin registry.
+	 *
+	 * @param ProviderRegistry $pluginRegistry Registry of sibling plugin CasC providers.
+	 */
 	public function __construct(
 		private readonly ProviderRegistry $pluginRegistry,
 	) {
 	}
 
+	/**
+	 * Return the plugins domain name.
+	 *
+	 * @return string Domain identifier ('plugins').
+	 */
 	public function domain(): string {
 		return 'plugins';
 	}
 
+	/**
+	 * Return the JSON Schema Draft 2020-12 fragment for spec.plugins including
+	 * live per-plugin config schemas from registered providers.
+	 *
+	 * @return array<string, mixed> JSON Schema describing installed plugins and registered provider configs.
+	 */
+	public function describeSchema(): array {
+		$itemSchema = [
+			'type'                 => 'object',
+			'required'             => ['slug'],
+			'additionalProperties' => false,
+			'properties'           => [
+				'slug'    => ['type' => 'string', 'pattern' => '^[a-z][a-z0-9_]{0,31}$'],
+				'enabled' => ['type' => 'boolean'],
+				'config'  => ['type' => 'object'],
+			],
+		];
+
+		$conditionals   = [];
+		$pluginMetadata = [];
+
+		foreach ($this->pluginRegistry->all() as $provider) {
+			$pluginSchema = $this->pluginRegistry->safeDescribeSchema($provider->slug);
+
+			$entry = [
+				'schemaVersion' => $provider->schemaVersion,
+			];
+
+			if ($pluginSchema !== null) {
+				$entry['schema'] = $pluginSchema;
+				$conditionals[]  = [
+					'if' => [
+						'properties' => [
+							'slug' => ['const' => $provider->slug],
+						],
+						'required' => ['slug'],
+					],
+					'then' => [
+						'properties' => [
+							'config' => $pluginSchema,
+						],
+					],
+				];
+			}
+
+			$pluginMetadata[$provider->slug] = $entry;
+		}
+
+		if ($conditionals !== []) {
+			$itemSchema['allOf'] = $conditionals;
+		}
+
+		$schema = [
+			'type'                 => 'object',
+			'description'          => 'Declarative Cacti plugin enablement and delegated per-plugin configuration blocks.',
+			'additionalProperties' => false,
+			'properties'           => [
+				'installed' => [
+					'type'  => 'array',
+					'items' => $itemSchema,
+				],
+			],
+		];
+
+		if ($pluginMetadata !== []) {
+			$schema['x-plugin-providers'] = $pluginMetadata;
+		}
+
+		return $schema;
+	}
+
+	/**
+	 * Export installed plugins and fault-isolated sibling provider config/reference sections.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<string, mixed> $options Export options.
+	 * @return array{spec: array<string, mixed>, reference: array<string, mixed>}
+	 */
 	public function export(StateRepository $repo, array $options = []): array {
 		$rows      = $repo->getPlugins();
 		$installed = [];
@@ -77,6 +165,14 @@ final class PluginsProvider implements ResourceProvider {
 		return ['spec' => $spec, 'reference' => $ref];
 	}
 
+	/**
+	 * Validate plugin entries and delegate config validation to registered plugin providers.
+	 *
+	 * @param array<array-key, mixed> $desired Desired plugins map.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Validation options.
+	 * @return list<string> Validation error messages.
+	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array {
 		$errors    = [];
 		$installed = $desired['installed'] ?? [];
@@ -128,6 +224,15 @@ final class PluginsProvider implements ResourceProvider {
 		return $errors;
 	}
 
+	/**
+	 * Plan plugin enablement transitions and delegated sibling provider diffs.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired plugins map.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options.
+	 * @return list<PlanAction> Planned plugin actions.
+	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$actions = [];
 		$errors  = $this->validate($desired, $secrets, $options);
@@ -193,9 +298,9 @@ final class PluginsProvider implements ResourceProvider {
 				$pluginPlan = $this->pluginRegistry->safePlan($slug, $this->stringKeyMap($entry['config']), $options);
 
 				foreach ($pluginPlan as $item) {
-					$op      = is_string($item['operation'] ?? null) ? $item['operation'] : PlanAction::UPDATE;
-					$itemKey = is_string($item['key'] ?? null) ? $item['key'] : $slug;
-					$msg     = is_string($item['message'] ?? null) ? $item['message'] : sprintf('Reconcile %s/%s', $slug, $itemKey);
+					$op        = is_string($item['operation'] ?? null) ? $item['operation'] : PlanAction::UPDATE;
+					$itemKey   = is_string($item['key'] ?? null) ? $item['key'] : $slug;
+					$msg       = is_string($item['message'] ?? null) ? $item['message'] : sprintf('Reconcile %s/%s', $slug, $itemKey);
 					$actions[] = new PlanAction('plugin:' . $slug, $op, $itemKey, $msg);
 				}
 			}
@@ -204,6 +309,15 @@ final class PluginsProvider implements ResourceProvider {
 		return $actions;
 	}
 
+	/**
+	 * Apply plugin enablement changes and fault-isolated sibling provider updates.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired plugins map.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Apply options including planHash.
+	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
+	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$plan      = $this->plan($repo, $desired, $secrets, $options);
 		$planHash  = is_string($options['planHash'] ?? null) ? $options['planHash'] : '';
@@ -265,8 +379,10 @@ final class PluginsProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @param array<array-key, mixed> $input
-	 * @return array<string, mixed>
+	 * Convert an arbitrary array into a string-keyed associative map.
+	 *
+	 * @param array<array-key, mixed> $input Arbitrary array input.
+	 * @return array<string, mixed> String-keyed map.
 	 */
 	private function stringKeyMap(array $input): array {
 		$out = [];

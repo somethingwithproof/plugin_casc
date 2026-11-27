@@ -34,7 +34,12 @@ final class YamlWriter {
 	public const MAX_DEPTH = YamlReader::MAX_DEPTH;
 
 	/**
-	 * @param array<array-key, mixed> $data
+	 * Serialize a non-empty PHP array tree into strict canonical block YAML 1.2.
+	 *
+	 * @param array<array-key, mixed> $data Non-empty map or list to serialize.
+	 * @param int $maxDepth Maximum allowed nesting depth.
+	 * @param bool $sortKeys Whether to sort map keys lexicographically.
+	 * @return string Canonical block YAML text ending with a newline.
 	 */
 	public static function write(array $data, int $maxDepth = self::MAX_DEPTH, bool $sortKeys = true): string {
 		if ($maxDepth < 1) {
@@ -53,8 +58,16 @@ final class YamlWriter {
 	}
 
 	/**
-	 * @param array<array-key, mixed> $data
-	 * @param list<string> $out
+	 * Recursively emit YAML lines for a map or list container.
+	 *
+	 * @param array<array-key, mixed> $data Container to emit.
+	 * @param int $indent Current indentation column in spaces.
+	 * @param int $depth Current nesting depth.
+	 * @param int $maxDepth Maximum permitted nesting depth.
+	 * @param bool $sortKeys Whether to sort map keys lexicographically.
+	 * @param list<string> $out Output line accumulator.
+	 * @param bool $firstInline Whether the first emitted line follows "- " inline.
+	 * @return void
 	 */
 	private static function collection(array $data, int $indent, int $depth, int $maxDepth, bool $sortKeys, array &$out, bool $firstInline): void {
 		if ($depth > $maxDepth) {
@@ -115,6 +128,12 @@ final class YamlWriter {
 		}
 	}
 
+	/**
+	 * Format a PHP scalar or null into a safe YAML 1.2 scalar representation.
+	 *
+	 * @param mixed $value Scalar or null value to format.
+	 * @return string Formatted YAML scalar token.
+	 */
 	private static function scalar(mixed $value): string {
 		if ($value === null) {
 			return 'null';
@@ -165,6 +184,12 @@ final class YamlWriter {
 		return "'" . str_replace("'", "''", $value) . "'";
 	}
 
+	/**
+	 * Encode a string containing control or separator code points as a double-quoted YAML scalar.
+	 *
+	 * @param string $value UTF-8 string value.
+	 * @return string Escaped double-quoted YAML scalar.
+	 */
 	private static function doubleQuoted(string $value): string {
 		$out = '';
 
@@ -190,6 +215,12 @@ final class YamlWriter {
 		return '"' . $out . '"';
 	}
 
+	/**
+	 * Decode a single UTF-8 character byte sequence into its Unicode code point.
+	 *
+	 * @param string $char Single UTF-8 character.
+	 * @return int Unicode scalar code point.
+	 */
 	private static function codePoint(string $char): int {
 		$b0 = ord($char[0]);
 

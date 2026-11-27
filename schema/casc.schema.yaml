@@ -1,0 +1,94 @@
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# This file is part of plugin_casc, a plugin for Cacti.
+# https://github.com/somethingwithproof/plugin_casc
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation; either version 2 of the License, or (at your option)
+# any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+# more details.
+
+plugin: casc
+schemaVersion: '1'
+apiVersion: cacti.net/v1alpha1
+kind: PluginSchema
+config:
+  settings:
+    casc_secret_dirs:
+      type: string
+      default: ''
+      secret: false
+      description: Colon-separated list of allowlisted absolute directories for file secret references.
+    casc_baseline_file:
+      type: string
+      default: ''
+      secret: false
+      description: Path to declarative YAML or XML baseline manifest for drift checks.
+    casc_uninstall_keep_tables:
+      type: boolean
+      default: false
+      secret: false
+      description: Preserve plugin_casc audit and plan tables during plugin uninstall.
+  manifestSections:
+    settings:
+      domain: settings
+      description: Allowlisted declarative Cacti settings and merge/strict reconciliation policy.
+    sites:
+      domain: sites
+      description: Declarative Cacti site records keyed by unique site name.
+    pollers:
+      domain: pollers
+      description: Primary and remote data collector records keyed by unique poller name.
+    templates:
+      domain: templates
+      description: Native Cacti XML templates, signed packages, and optional compiled YAML templates.
+    devices:
+      domain: devices
+      description: Managed Cacti devices keyed by external_id or hostname::description.
+    trees:
+      domain: trees
+      description: Graph tree hierarchies and item assignments keyed by tree name.
+    plugins:
+      domain: plugins
+      description: Plugin enablement state and delegated casc_register_providers config blocks.
+state:
+  settings:
+    casc_schema_version:
+      type: integer
+      exportable: false
+      description: Internal database schema migration level tracked by plugin_casc.
+  tables:
+    plugin_casc_audit:
+      primaryKey: id
+      exportable: false
+      containsSecrets: false
+      description: Runtime audit log of CasC apply attempts, plan hashes, and action counts.
+      columns:
+        - id
+        - occurred_at
+        - actor
+        - source
+        - action
+        - plan_hash
+        - status
+        - created_count
+        - updated_count
+        - deleted_count
+        - summary_json
+    plugin_casc_plan:
+      primaryKey: plan_hash
+      exportable: false
+      containsSecrets: false
+      description: Runtime confirmation trace of recently computed plan hashes.
+      columns:
+        - plan_hash
+        - created_at
+        - actor
+        - manifest_sha256
+        - action_count

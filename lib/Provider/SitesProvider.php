@@ -25,6 +25,9 @@ use Somethingwithproof\Casc\Engine\PlanAction;
 use Somethingwithproof\Casc\Repository\StateRepository;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
+/**
+ * Reconciles Cacti site records keyed by unique site name.
+ */
 final class SitesProvider implements ResourceProvider {
 	private const FIELD_MAP = [
 		'address1'    => 'address1',
@@ -38,10 +41,54 @@ final class SitesProvider implements ResourceProvider {
 		'notes'       => 'notes',
 	];
 
+	/**
+	 * Return the sites domain name.
+	 *
+	 * @return string Domain identifier ('sites').
+	 */
 	public function domain(): string {
 		return 'sites';
 	}
 
+	/**
+	 * Return the JSON Schema Draft 2020-12 fragment for spec.sites.
+	 *
+	 * @return array<string, mixed> JSON Schema describing declarative site records.
+	 */
+	public function describeSchema(): array {
+		return [
+			'type'        => 'array',
+			'description' => 'Declarative Cacti site records keyed by unique site name.',
+			'items'       => [
+				'type'                 => 'object',
+				'required'             => ['name'],
+				'additionalProperties' => false,
+				'properties'           => [
+					'name'        => ['type' => 'string', 'minLength' => 1],
+					'address1'    => ['type' => 'string'],
+					'address2'    => ['type' => 'string'],
+					'city'        => ['type' => 'string'],
+					'state'       => ['type' => ['string', 'null']],
+					'postalCode'  => ['type' => 'string'],
+					'country'     => ['type' => 'string'],
+					'timezone'    => ['type' => 'string'],
+					'latitude'    => ['type' => 'number'],
+					'longitude'   => ['type' => 'number'],
+					'zoom'        => ['type' => ['integer', 'null']],
+					'alternateId' => ['type' => 'string'],
+					'notes'       => ['type' => ['string', 'null']],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Export all sites sorted lexicographically by name.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<string, mixed> $options Export options.
+	 * @return array{spec: list<array<string, mixed>>}
+	 */
 	public function export(StateRepository $repo, array $options = []): array {
 		$rows = $repo->getSites();
 		usort($rows, static fn (array $a, array $b): int => strcmp(self::str($a['name'] ?? ''), self::str($b['name'] ?? '')));
@@ -83,6 +130,14 @@ final class SitesProvider implements ResourceProvider {
 		return ['spec' => $out];
 	}
 
+	/**
+	 * Validate site list shape and natural-key uniqueness.
+	 *
+	 * @param array<array-key, mixed> $desired Desired sites list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Validation options.
+	 * @return list<string> Validation error messages.
+	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array {
 		$errors = [];
 
@@ -117,6 +172,15 @@ final class SitesProvider implements ResourceProvider {
 		return $errors;
 	}
 
+	/**
+	 * Plan site creates, updates, and optional prunes against live repository state.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired sites list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options supporting prune.
+	 * @return list<PlanAction> Planned site actions.
+	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$actions = [];
 		$errors  = $this->validate($desired, $secrets, $options);
@@ -180,6 +244,15 @@ final class SitesProvider implements ResourceProvider {
 		return $actions;
 	}
 
+	/**
+	 * Apply planned site mutations inside the active transaction.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired sites list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Apply options.
+	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
+	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$plan    = $this->plan($repo, $desired, $secrets, $options);
 		$applied = [];
@@ -227,9 +300,11 @@ final class SitesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @param array<string, mixed> $existing
-	 * @param array<array-key, mixed> $entry
-	 * @return array<string, array{from: mixed, to: mixed}>
+	 * Compute field-level diffs between a live site row and a desired manifest entry.
+	 *
+	 * @param array<string, mixed> $existing Live database site row.
+	 * @param array<array-key, mixed> $entry Desired site manifest entry.
+	 * @return array<string, array{from: mixed, to: mixed}> Map of changed fields.
 	 */
 	private function diffSite(array $existing, array $entry): array {
 		$diffs = [];
@@ -273,9 +348,12 @@ final class SitesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @param array<array-key, mixed> $entry
-	 * @param array<string, mixed> $existing
-	 * @return array<string, mixed>
+	 * Build a database save payload merging desired site attributes with existing row defaults.
+	 *
+	 * @param string $name Canonical site natural key.
+	 * @param array<array-key, mixed> $entry Desired site manifest entry.
+	 * @param array<string, mixed> $existing Live site row or empty array.
+	 * @return array<string, mixed> Payload suitable for StateRepository::saveSite().
 	 */
 	private function buildDbPayload(string $name, array $entry, array $existing): array {
 		$payload = [
@@ -298,6 +376,12 @@ final class SitesProvider implements ResourceProvider {
 		return $payload;
 	}
 
+	/**
+	 * Convert a scalar value to string, returning an empty string for non-scalars.
+	 *
+	 * @param mixed $value Candidate scalar value.
+	 * @return string String representation.
+	 */
 	private static function str(mixed $value): string {
 		return is_scalar($value) ? (string) $value : '';
 	}

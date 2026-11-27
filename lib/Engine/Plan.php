@@ -26,7 +26,11 @@ namespace Somethingwithproof\Casc\Engine;
  */
 final class Plan {
 	/**
-	 * @param list<PlanAction> $actions
+	 * Construct a deterministic reconciliation plan.
+	 *
+	 * @param string $planHash Canonical 64-char SHA-256 hash of manifest, prune options, and actions.
+	 * @param string $manifestSha256 SHA-256 hash of the canonicalized manifest document.
+	 * @param list<PlanAction> $actions Ordered list of planned actions.
 	 */
 	public function __construct(
 		public readonly string $planHash,
@@ -35,6 +39,11 @@ final class Plan {
 	) {
 	}
 
+	/**
+	 * Determine whether the plan contains any mutating action (create, update, or delete).
+	 *
+	 * @return bool True when at least one mutation is planned.
+	 */
 	public function hasChanges(): bool {
 		foreach ($this->actions as $action) {
 			if ($action->isMutation()) {
@@ -45,6 +54,11 @@ final class Plan {
 		return false;
 	}
 
+	/**
+	 * Determine whether the plan contains any blocking error action.
+	 *
+	 * @return bool True when at least one error action is present.
+	 */
 	public function hasErrors(): bool {
 		foreach ($this->actions as $action) {
 			if ($action->operation === PlanAction::ERROR) {
@@ -56,6 +70,8 @@ final class Plan {
 	}
 
 	/**
+	 * Tally action counts grouped by operation type.
+	 *
 	 * @return array{create: int, update: int, delete: int, warning: int, error: int}
 	 */
 	public function counts(): array {
@@ -90,6 +106,11 @@ final class Plan {
 		];
 	}
 
+	/**
+	 * Render a human-readable multi-line plan diff summary.
+	 *
+	 * @return string Formatted text plan output.
+	 */
 	public function formatText(): string {
 		$lines = [];
 
@@ -126,6 +147,11 @@ final class Plan {
 		return implode("\n", $lines) . "\n";
 	}
 
+	/**
+	 * Render the plan as pretty-printed JSON.
+	 *
+	 * @return string JSON plan output ending with a newline.
+	 */
 	public function formatJson(): string {
 		return json_encode($this->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
 	}

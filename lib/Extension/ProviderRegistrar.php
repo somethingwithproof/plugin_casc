@@ -26,17 +26,31 @@ namespace Somethingwithproof\Casc\Extension;
  * so a plugin can register only its own slug.
  */
 final class ProviderRegistrar {
+	/**
+	 * Create a registrar restricted to a single plugin slug.
+	 *
+	 * @param ProviderRegistry $registry Target scratch or live registry.
+	 * @param string $expectedSlug Plugin directory slug allowed to register.
+	 */
 	public function __construct(
 		private readonly ProviderRegistry $registry,
 		private readonly string $expectedSlug,
 	) {
 	}
 
-	public function register(PluginProviderDescriptor $descriptor): void {
-		if ($descriptor->slug !== $this->expectedSlug) {
-			throw new \LogicException(sprintf('Plugin "%s" cannot register provider for foreign slug "%s"', $this->expectedSlug, $descriptor->slug));
+	/**
+	 * Register a provider descriptor object or plain-array descriptor for the owned slug.
+	 *
+	 * @param PluginProviderDescriptor|array<array-key, mixed> $descriptor Provider descriptor object or plain array.
+	 * @return void
+	 */
+	public function register(PluginProviderDescriptor|array $descriptor): void {
+		$resolved = is_array($descriptor) ? PluginProviderDescriptor::fromArray($descriptor) : $descriptor;
+
+		if ($resolved->slug !== $this->expectedSlug) {
+			throw new \LogicException(sprintf('Plugin "%s" cannot register provider for foreign slug "%s"', $this->expectedSlug, $resolved->slug));
 		}
 
-		$this->registry->register($descriptor);
+		$this->registry->register($resolved);
 	}
 }

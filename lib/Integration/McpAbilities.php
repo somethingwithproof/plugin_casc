@@ -169,6 +169,9 @@ final class McpAbilities {
 
 	/**
 	 * Default Cacti realm permission check for MCP abilities (CasC View or higher).
+	 *
+	 * @param int $userId Cacti user ID to authorize.
+	 * @return bool True when the user holds View, Operator, or Admin realm access.
 	 */
 	public static function userHasViewRealm(int $userId): bool {
 		if ($userId <= 0 || !function_exists('db_fetch_cell_prepared') || !function_exists('is_realm_allowed')) {

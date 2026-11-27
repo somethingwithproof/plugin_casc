@@ -26,6 +26,9 @@ use Somethingwithproof\Casc\Model\CascDocument;
 use Somethingwithproof\Casc\Repository\StateRepository;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
+/**
+ * Reconciles Cacti graph trees and hierarchical tree items keyed by tree name.
+ */
 final class TreesProvider implements ResourceProvider {
 	private const SORT_TO_NAME = [
 		1 => 'manual',
@@ -41,10 +44,48 @@ final class TreesProvider implements ResourceProvider {
 		'natural' => 4,
 	];
 
+	/**
+	 * Return the trees domain name.
+	 *
+	 * @return string Domain identifier ('trees').
+	 */
 	public function domain(): string {
 		return 'trees';
 	}
 
+	/**
+	 * Return the JSON Schema Draft 2020-12 fragment for spec.trees.
+	 *
+	 * @return array<string, mixed> JSON Schema describing declarative graph trees.
+	 */
+	public function describeSchema(): array {
+		return [
+			'type'        => 'array',
+			'description' => 'Declarative Cacti graph trees and hierarchical item branches.',
+			'items'       => [
+				'type'                 => 'object',
+				'required'             => ['name'],
+				'additionalProperties' => false,
+				'properties'           => [
+					'name'     => ['type' => 'string', 'minLength' => 1],
+					'enabled'  => ['type' => 'boolean'],
+					'sortType' => ['type' => 'string', 'enum' => ['manual', 'alpha', 'numeric', 'natural']],
+					'items'    => [
+						'type'  => 'array',
+						'items' => ['type' => 'object'],
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Export all graph trees sorted lexicographically by name.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<string, mixed> $options Export options.
+	 * @return array{spec: list<array<string, mixed>>}
+	 */
 	public function export(StateRepository $repo, array $options = []): array {
 		$rows = $repo->getTrees();
 		usort($rows, static fn (array $a, array $b): int => strcmp(self::str($a['name'] ?? ''), self::str($b['name'] ?? '')));
@@ -75,6 +116,14 @@ final class TreesProvider implements ResourceProvider {
 		return ['spec' => $out];
 	}
 
+	/**
+	 * Validate tree list structure, natural-key uniqueness, sortType enum, and items list.
+	 *
+	 * @param array<array-key, mixed> $desired Desired trees list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Validation options.
+	 * @return list<string> Validation error messages.
+	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array {
 		$errors = [];
 
@@ -117,6 +166,15 @@ final class TreesProvider implements ResourceProvider {
 		return $errors;
 	}
 
+	/**
+	 * Plan tree creates, updates, and optional prunes against live state.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired trees list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options supporting prune.
+	 * @return list<PlanAction> Planned tree actions.
+	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$actions = [];
 		$errors  = $this->validate($desired, $secrets, $options);
@@ -172,6 +230,15 @@ final class TreesProvider implements ResourceProvider {
 		return $actions;
 	}
 
+	/**
+	 * Apply planned graph tree mutations inside the active transaction.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired trees list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Apply options.
+	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
+	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$plan    = $this->plan($repo, $desired, $secrets, $options);
 		$applied = [];
@@ -227,9 +294,11 @@ final class TreesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @param array<string, mixed> $existing
-	 * @param array<array-key, mixed> $entry
-	 * @return array<string, array{from: mixed, to: mixed}>
+	 * Compute field-level diffs between a live graph tree row and a desired entry.
+	 *
+	 * @param array<string, mixed> $existing Live graph tree row.
+	 * @param array<array-key, mixed> $entry Desired tree manifest entry.
+	 * @return array<string, array{from: mixed, to: mixed}> Map of changed fields.
 	 */
 	private function diffTree(array $existing, array $entry): array {
 		$diffs = [];
@@ -268,8 +337,8 @@ final class TreesProvider implements ResourceProvider {
 	 * Normalize nested tree item maps to sorted keys so PHP === comparison is
 	 * invariant to map key insertion order while preserving list order.
 	 *
-	 * @param list<mixed> $items
-	 * @return list<mixed>
+	 * @param list<mixed> $items Tree items list.
+	 * @return list<mixed> Canonicalized tree items list.
 	 */
 	private static function canonicalizeItems(array $items): array {
 		$wrapped = CascDocument::canonicalizeMap(['items' => $items]);
@@ -279,6 +348,12 @@ final class TreesProvider implements ResourceProvider {
 			: [];
 	}
 
+	/**
+	 * Convert a scalar value to string, returning an empty string for non-scalars.
+	 *
+	 * @param mixed $value Candidate scalar value.
+	 * @return string String representation.
+	 */
 	private static function str(mixed $value): string {
 		return is_scalar($value) ? (string) $value : '';
 	}

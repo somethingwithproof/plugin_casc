@@ -28,13 +28,75 @@ use Somethingwithproof\Casc\Repository\StateRepository;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
 /**
- * Native Cacti XML template and signed .xml.gz package bridge provider.
+ * Native Cacti XML template, signed .xml.gz package, and optional compiled
+ * YAML template bridge provider.
  */
 final class TemplatesProvider implements ResourceProvider {
+	/** @var list<callable(string, array<string, mixed>): mixed> */
+	private readonly array $templateCompilers;
+
+	/**
+	 * Construct the templates provider with optional YAML template compilers.
+	 *
+	 * @param list<callable(string, array<string, mixed>): mixed> $templateCompilers Compilers registered via casc_register_template_compilers.
+	 */
+	public function __construct(array $templateCompilers = []) {
+		$this->templateCompilers = array_values($templateCompilers);
+	}
+
+	/**
+	 * Return the templates domain name.
+	 *
+	 * @return string Domain identifier ('templates').
+	 */
 	public function domain(): string {
 		return 'templates';
 	}
 
+	/**
+	 * Return the JSON Schema Draft 2020-12 fragment for spec.templates.
+	 *
+	 * @return array<string, mixed> JSON Schema describing template reference entries.
+	 */
+	public function describeSchema(): array {
+		return [
+			'type'        => 'array',
+			'description' => 'Declarative references to Cacti XML templates, signed .xml.gz packages, or compiled YAML templates.',
+			'items'       => [
+				'type'                 => 'object',
+				'required'             => ['path'],
+				'additionalProperties' => false,
+				'properties'           => [
+					'path' => [
+						'type'        => 'string',
+						'minLength'   => 1,
+						'description' => 'Relative path to a .xml, .xml.gz, .yaml, or .yml template file under the manifest directory.',
+					],
+					'sha256' => [
+						'type'        => 'string',
+						'pattern'     => '^[a-fA-F0-9]{64}$',
+						'description' => 'Optional pinned SHA-256 digest of the on-disk template file.',
+					],
+					'profile' => [
+						'type'        => 'string',
+						'description' => 'Target Cacti data source profile name (defaults to System Default).',
+					],
+					'replaceSuggestedValues' => [
+						'type'        => 'boolean',
+						'description' => 'Whether to replace existing suggested values during import.',
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Export host templates into a split templates directory when requested.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<string, mixed> $options Export options supporting splitTemplatesDir.
+	 * @return array{spec: list<array<string, mixed>>}
+	 */
 	public function export(StateRepository $repo, array $options = []): array {
 		$splitDir = is_string($options['splitTemplatesDir'] ?? null) ? trim($options['splitTemplatesDir']) : '';
 
@@ -75,9 +137,18 @@ final class TemplatesProvider implements ResourceProvider {
 		return ['spec' => $entries];
 	}
 
+	/**
+	 * Validate template references, pinned digests, compiler availability, and template payloads.
+	 *
+	 * @param array<array-key, mixed> $desired Desired template list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Validation options (baseDir, templateCompilers).
+	 * @return list<string> Validation error messages.
+	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array {
-		$errors  = [];
-		$baseDir = is_string($options['baseDir'] ?? null) ? $options['baseDir'] : '';
+		$errors    = [];
+		$baseDir   = is_string($options['baseDir'] ?? null) ? $options['baseDir'] : '';
+		$compilers = $this->resolveCompilers($options);
 
 		if ($desired !== [] && !array_is_list($desired)) {
 			return ['templates must be a list of template reference objects'];
@@ -114,18 +185,37 @@ final class TemplatesProvider implements ResourceProvider {
 				continue;
 			}
 
-			if ($baseDir !== '') {
-				try {
-					TemplateBridge::inspectTemplateFile($path, $baseDir, $sha256);
-				} catch (CodecException $e) {
-					$errors[] = sprintf('templates[%d]: %s', (int) $idx, $e->getMessage());
+			if ($baseDir === '') {
+				if (TemplateBridge::isYamlTemplatePath($path) && $compilers === []) {
+					$errors[] = sprintf(
+						'templates[%d]: Template "%s" is a YAML template, which requires plugin_yaml or a registered casc_register_template_compilers provider',
+						(int) $idx,
+						$path
+					);
 				}
+
+				continue;
+			}
+
+			try {
+				TemplateBridge::inspectTemplateFile($path, $baseDir, $sha256, $compilers);
+			} catch (CodecException $e) {
+				$errors[] = sprintf('templates[%d]: %s', (int) $idx, $e->getMessage());
 			}
 		}
 
 		return $errors;
 	}
 
+	/**
+	 * Plan template imports by comparing extracted Cacti template hashes against live DB hashes.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired template list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options (baseDir, templateCompilers).
+	 * @return list<PlanAction> Planned template actions.
+	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$actions = [];
 		$errors  = $this->validate($desired, $secrets, $options);
@@ -138,7 +228,8 @@ final class TemplatesProvider implements ResourceProvider {
 			return $actions;
 		}
 
-		$baseDir = is_string($options['baseDir'] ?? null) ? $options['baseDir'] : '';
+		$baseDir   = is_string($options['baseDir'] ?? null) ? $options['baseDir'] : '';
+		$compilers = $this->resolveCompilers($options);
 
 		$knownHashes = [];
 
@@ -163,7 +254,7 @@ final class TemplatesProvider implements ResourceProvider {
 			}
 
 			try {
-				$inspected = TemplateBridge::inspectTemplateFile($path, $baseDir, $sha256);
+				$inspected = TemplateBridge::inspectTemplateFile($path, $baseDir, $sha256, $compilers);
 			} catch (CodecException $e) {
 				$actions[] = new PlanAction('templates', PlanAction::ERROR, $path, $e->getMessage());
 
@@ -192,10 +283,20 @@ final class TemplatesProvider implements ResourceProvider {
 		return $actions;
 	}
 
+	/**
+	 * Apply planned template imports via Cacti's native XML or package importer.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired template list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Apply options (baseDir, templateCompilers).
+	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
+	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
-		$plan    = $this->plan($repo, $desired, $secrets, $options);
-		$baseDir = is_string($options['baseDir'] ?? null) ? $options['baseDir'] : '';
-		$applied = [];
+		$plan      = $this->plan($repo, $desired, $secrets, $options);
+		$baseDir   = is_string($options['baseDir'] ?? null) ? $options['baseDir'] : '';
+		$compilers = $this->resolveCompilers($options);
+		$applied   = [];
 
 		$byPath = [];
 
@@ -223,7 +324,7 @@ final class TemplatesProvider implements ResourceProvider {
 				throw new \RuntimeException(sprintf('Cannot apply template "%s" without a manifest base directory', $action->naturalKey));
 			}
 
-			$inspected = TemplateBridge::inspectTemplateFile($action->naturalKey, $baseDir, $sha256);
+			$inspected = TemplateBridge::inspectTemplateFile($action->naturalKey, $baseDir, $sha256, $compilers);
 
 			$ok = $inspected['isPackage']
 				? $repo->importTemplatePackage($inspected['resolvedPath'], $profile, $replace)
@@ -241,5 +342,28 @@ final class TemplatesProvider implements ResourceProvider {
 			'needsReplication' => $applied !== [],
 			'needsPollerCache' => false,
 		];
+	}
+
+	/**
+	 * Resolve effective YAML template compilers from options override or constructor injection.
+	 *
+	 * @param array<string, mixed> $options Provider options map.
+	 * @return list<callable(string, array<string, mixed>): mixed> Active compiler callbacks.
+	 */
+	private function resolveCompilers(array $options): array {
+		if (!isset($options['templateCompilers']) || !is_array($options['templateCompilers'])) {
+			return $this->templateCompilers;
+		}
+
+		$out = [];
+
+		foreach ($options['templateCompilers'] as $candidate) {
+			if (is_callable($candidate)) {
+				/** @var callable(string, array<string, mixed>): mixed $candidate */
+				$out[] = $candidate;
+			}
+		}
+
+		return $out;
 	}
 }

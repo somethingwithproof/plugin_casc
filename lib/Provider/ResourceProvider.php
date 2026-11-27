@@ -25,13 +25,30 @@ use Somethingwithproof\Casc\Engine\PlanAction;
 use Somethingwithproof\Casc\Repository\StateRepository;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
+/**
+ * Contract for core Cacti resource domain providers participating in CasC
+ * export, validation, planning, apply, and JSON Schema description.
+ */
 interface ResourceProvider {
+	/**
+	 * Return the canonical manifest spec domain name handled by this provider.
+	 *
+	 * @return string Spec domain key (e.g. settings, sites, devices).
+	 */
 	public function domain(): string;
+
+	/**
+	 * Return the JSON Schema Draft 2020-12 fragment describing this domain's spec section.
+	 *
+	 * @return array<string, mixed> JSON Schema object for spec.<domain>.
+	 */
+	public function describeSchema(): array;
 
 	/**
 	 * Export current state for this domain.
 	 *
-	 * @param array<string, mixed> $options
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<string, mixed> $options Export options (e.g. omitSecrets, splitTemplatesDir).
 	 * @return array{spec: mixed, reference?: array<string, mixed>}
 	 */
 	public function export(StateRepository $repo, array $options = []): array;
@@ -39,26 +56,31 @@ interface ResourceProvider {
 	/**
 	 * Validate desired section structure, natural keys, and secret references.
 	 *
-	 * @param array<array-key, mixed> $desired
-	 * @param array<string, mixed> $options
-	 * @return list<string>
+	 * @param array<array-key, mixed> $desired Desired domain payload from the manifest.
+	 * @param SecretResolver $secrets Secret reference validator/resolver.
+	 * @param array<string, mixed> $options Validation options (e.g. baseDir).
+	 * @return list<string> Validation error messages.
 	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array;
 
 	/**
 	 * Compute deterministic diff actions between live state and desired state.
 	 *
-	 * @param array<array-key, mixed> $desired
-	 * @param array<string, mixed> $options
-	 * @return list<PlanAction>
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired domain payload from the manifest.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options (e.g. prune, baseDir, plannedSites).
+	 * @return list<PlanAction> Planned operations for this domain.
 	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array;
 
 	/**
 	 * Apply desired state mutations inside the active transaction.
 	 *
-	 * @param array<array-key, mixed> $desired
-	 * @param array<string, mixed> $options
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired domain payload from the manifest.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Apply options including confirmed planHash.
 	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
 	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array;

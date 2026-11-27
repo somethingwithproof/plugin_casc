@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace Somethingwithproof\Casc\Engine;
 
 use Somethingwithproof\Casc\Model\CascDocument;
+use Somethingwithproof\Casc\Model\CrossParameterValidator;
 use Somethingwithproof\Casc\Provider\ResourceProvider;
 use Somethingwithproof\Casc\Repository\StateRepository;
 use Somethingwithproof\Casc\Secret\SecretResolver;
@@ -45,7 +46,9 @@ final class Planner {
 	private array $providers = [];
 
 	/**
-	 * @param list<ResourceProvider> $providers
+	 * Construct a planner indexed by domain from a list of resource providers.
+	 *
+	 * @param list<ResourceProvider> $providers Registered core domain providers.
 	 */
 	public function __construct(array $providers) {
 		foreach ($providers as $provider) {
@@ -54,7 +57,9 @@ final class Planner {
 	}
 
 	/**
-	 * @return list<string>
+	 * Return registered provider domain names in topological reconciliation order.
+	 *
+	 * @return list<string> Ordered domain names.
 	 */
 	public function orderedDomains(): array {
 		$ordered = [];
@@ -68,6 +73,12 @@ final class Planner {
 		return $ordered;
 	}
 
+	/**
+	 * Look up the provider registered for a given spec domain.
+	 *
+	 * @param string $domain Domain identifier.
+	 * @return ResourceProvider|null Matching provider or null.
+	 */
 	public function provider(string $domain): ?ResourceProvider {
 		return $this->providers[$domain] ?? null;
 	}
@@ -75,8 +86,10 @@ final class Planner {
 	/**
 	 * Validate every present spec domain without touching database state.
 	 *
-	 * @param array<string, mixed> $options
-	 * @return list<string>
+	 * @param CascDocument $document Parsed CasC manifest document.
+	 * @param SecretResolver $secrets Secret reference validator.
+	 * @param array<string, mixed> $options Validation options (e.g. baseDir).
+	 * @return list<string> Validation error messages.
 	 */
 	public function validate(CascDocument $document, SecretResolver $secrets, array $options = []): array {
 		$errors = [];
@@ -97,9 +110,14 @@ final class Planner {
 	}
 
 	/**
-	 * Compute a deterministic plan against the live StateRepository.
+	 * Compute a deterministic plan against the live StateRepository including
+	 * cross-parameter invariant verification.
 	 *
-	 * @param array<string, mixed> $options
+	 * @param StateRepository $repo Active state repository.
+	 * @param CascDocument $document Parsed CasC manifest document.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options (e.g. prune, baseDir).
+	 * @return Plan Deterministic plan with canonical SHA-256 planHash.
 	 */
 	public function plan(StateRepository $repo, CascDocument $document, SecretResolver $secrets, array $options = []): Plan {
 		$actions = [];
@@ -130,6 +148,8 @@ final class Planner {
 			'plannedPollers' => $plannedPollers,
 		];
 
+		$seenErrors = [];
+
 		foreach ($this->orderedDomains() as $domain) {
 			if (!isset($document->spec[$domain]) || !is_array($document->spec[$domain])) {
 				continue;
@@ -138,8 +158,26 @@ final class Planner {
 			$provider = $this->providers[$domain];
 
 			foreach ($provider->plan($repo, $document->spec[$domain], $secrets, $providerOptions) as $action) {
+				if ($action->operation === PlanAction::ERROR) {
+					$seenErrors[$action->summary] = true;
+				}
+
 				$actions[] = $action;
 			}
+		}
+
+		foreach (CrossParameterValidator::validateDetailed($document, $repo) as $violation) {
+			if (isset($seenErrors[$violation['message']])) {
+				continue;
+			}
+
+			$seenErrors[$violation['message']] = true;
+			$actions[]                         = new PlanAction(
+				$violation['domain'],
+				PlanAction::ERROR,
+				$violation['key'],
+				$violation['message']
+			);
 		}
 
 		// Report reference.paths differences as non-mutating warnings.
@@ -147,9 +185,9 @@ final class Planner {
 			$currentSettings = $repo->getSettings();
 
 			foreach ($document->reference['paths'] as $pathKey => $refVal) {
-				$key   = (string) $pathKey;
-				$cur   = $currentSettings[$key] ?? '';
-				$ref   = is_scalar($refVal) ? (string) $refVal : '';
+				$key = (string) $pathKey;
+				$cur = $currentSettings[$key] ?? '';
+				$ref = is_scalar($refVal) ? (string) $refVal : '';
 
 				if ($ref !== '' && $cur !== $ref) {
 					$actions[] = new PlanAction(

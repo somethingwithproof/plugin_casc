@@ -21,12 +21,20 @@ declare(strict_types=1);
 
 namespace Somethingwithproof\Casc\Codec;
 
+/**
+ * Exception raised when parsing, validating, or serializing a CasC manifest or template fails.
+ */
 final class CodecException extends \RuntimeException {
 	/** @var list<string> */
 	private readonly array $errors;
 
 	/**
-	 * @param list<string> $errors
+	 * Construct a codec exception with optional line number and multi-line error list.
+	 *
+	 * @param string $message Primary error summary.
+	 * @param int|null $lineNumber Optional 1-based source line number.
+	 * @param list<string> $errors Optional detailed list of diagnostic lines.
+	 * @param \Throwable|null $previous Optional underlying exception.
 	 */
 	public function __construct(
 		string $message,
@@ -34,13 +42,15 @@ final class CodecException extends \RuntimeException {
 		array $errors = [],
 		?\Throwable $previous = null
 	) {
-		$formatted = $lineNumber !== null ? sprintf('Line %d: %s', $lineNumber, $message) : $message;
+		$formatted    = $lineNumber !== null ? sprintf('Line %d: %s', $lineNumber, $message) : $message;
 		$this->errors = $errors !== [] ? $errors : [$formatted];
 
 		parent::__construct($formatted, 0, $previous);
 	}
 
 	/**
+	 * Return all formatted diagnostic lines carried by this exception.
+	 *
 	 * @return list<string>
 	 */
 	public function lines(): array {

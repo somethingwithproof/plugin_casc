@@ -33,9 +33,13 @@ final class CascDocument {
 	public const KIND        = 'CactiConfig';
 
 	/**
-	 * @param array<string, mixed> $metadata
-	 * @param array<string, mixed> $spec
-	 * @param array<string, mixed> $reference
+	 * Construct an immutable canonical CasC manifest document.
+	 *
+	 * @param string $apiVersion Manifest schema API version.
+	 * @param string $kind Manifest kind identifier.
+	 * @param array<string, mixed> $metadata Scalar metadata key/value map.
+	 * @param array<string, mixed> $spec Declarative desired-state sections.
+	 * @param array<string, mixed> $reference Installation-local reference metadata.
 	 */
 	public function __construct(
 		public readonly string $apiVersion,

@@ -38,9 +38,12 @@ final class SecretResolver {
 	private $vaultReader;
 
 	/**
-	 * @param list<string> $allowedDirs Allowlisted root directories for file: references
-	 * @param (callable(string): (string|false))|null $envReader
-	 * @param (callable(string, string): string)|null $vaultReader
+	 * Construct a secret resolver with allowlisted directories and optional readers.
+	 *
+	 * @param list<string> $allowedDirs Allowlisted root directories for file: references.
+	 * @param (callable(string): (string|false))|null $envReader Optional environment reader callback.
+	 * @param (callable(string, string): string)|null $vaultReader Optional vault reader callback.
+	 * @param bool $requireReferences Whether to forbid plaintext secret literals.
 	 */
 	public function __construct(
 		array $allowedDirs = [],
@@ -71,6 +74,9 @@ final class SecretResolver {
 
 	/**
 	 * Validate a secret reference syntax without revealing or returning its value.
+	 *
+	 * @param string $value Candidate secret reference or literal value.
+	 * @return void
 	 */
 	public function validateReference(string $value): void {
 		if ($value === '') {
@@ -114,6 +120,9 @@ final class SecretResolver {
 
 	/**
 	 * Resolve a secret reference into its runtime value.
+	 *
+	 * @param string $value Secret reference or literal value.
+	 * @return string Resolved runtime secret value.
 	 */
 	public function resolve(string $value): string {
 		if ($value === '') {
@@ -166,6 +175,9 @@ final class SecretResolver {
 	/**
 	 * Enforce confinement to allowlisted directories, symlink rejection on
 	 * every path segment, regular-file check, and strict 0400/0600 mode.
+	 *
+	 * @param string $path Candidate absolute secret file path.
+	 * @return string Verified canonical filesystem path.
 	 */
 	private function validateFilePath(string $path): string {
 		if ($path === '' || str_contains($path, "\0") || !str_starts_with($path, '/')) {

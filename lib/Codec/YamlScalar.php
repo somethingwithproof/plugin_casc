@@ -39,6 +39,9 @@ final class YamlScalar {
 	public const AMBIGUOUS = 'ambiguous';
 
 	/**
+	 * Classify a plain YAML 1.2 scalar into its canonical type and value.
+	 *
+	 * @param string $text Unquoted scalar text.
 	 * @return array{0: string, 1: null|bool|int|float|string}
 	 */
 	public static function classify(string $text): array {
@@ -80,6 +83,9 @@ final class YamlScalar {
 
 	/**
 	 * Whether the writer may emit the string unquoted without ambiguity.
+	 *
+	 * @param string $text Candidate string scalar.
+	 * @return bool True when emitting $text unquoted is unambiguous in YAML 1.1 and 1.2.
 	 */
 	public static function plainSafe(string $text): bool {
 		if ($text === '' || self::classify($text)[0] !== self::STRING) {

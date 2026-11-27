@@ -21,7 +21,17 @@ declare(strict_types=1);
 
 namespace Somethingwithproof\Casc\Model;
 
+/**
+ * Structured schema validation error carrying manifest path and optional line number.
+ */
 final class ValidationError {
+	/**
+	 * Construct a validation error at a manifest path and optional source line.
+	 *
+	 * @param string $path Slash-delimited path inside the manifest.
+	 * @param string $message Human-readable validation failure description.
+	 * @param int|null $line Optional 1-based line number from the source codec.
+	 */
 	public function __construct(
 		public readonly string $path,
 		public readonly string $message,
@@ -29,6 +39,11 @@ final class ValidationError {
 	) {
 	}
 
+	/**
+	 * Format the validation error into a single diagnostic line.
+	 *
+	 * @return string Formatted error text including line number when known.
+	 */
 	public function format(): string {
 		$prefix = $this->line !== null ? sprintf('Line %d (%s): ', $this->line, $this->path) : sprintf('%s: ', $this->path);
 

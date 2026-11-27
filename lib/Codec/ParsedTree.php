@@ -21,10 +21,15 @@ declare(strict_types=1);
 
 namespace Somethingwithproof\Casc\Codec;
 
+/**
+ * Decoded YAML or XML document tree paired with source path-to-line metadata.
+ */
 final class ParsedTree {
 	/**
-	 * @param array<array-key, mixed> $data
-	 * @param array<string, int> $lineMap
+	 * Construct a decoded tree with optional line number map.
+	 *
+	 * @param array<array-key, mixed> $data Decoded document array.
+	 * @param array<string, int> $lineMap Slash-path to 1-based line number map.
 	 */
 	public function __construct(
 		public readonly array $data,
@@ -32,6 +37,12 @@ final class ParsedTree {
 	) {
 	}
 
+	/**
+	 * Look up the 1-based source line number for a decoded document path.
+	 *
+	 * @param string $path Slash-delimited path inside the document.
+	 * @return int|null Line number when recorded, or null.
+	 */
 	public function lineFor(string $path): ?int {
 		return $this->lineMap[$path] ?? null;
 	}

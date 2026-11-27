@@ -21,21 +21,42 @@ declare(strict_types=1);
 
 namespace Somethingwithproof\Casc;
 
+/**
+ * Thin Cacti logging adapter emitting sanitized messages under the CASC environment tag.
+ */
 final class Log {
 	private const ENVIRON = 'CASC';
 
+	/**
+	 * Log an informational message to Cacti's log when cacti_log() is available.
+	 *
+	 * @param string $message Informational log message.
+	 * @return void
+	 */
 	public static function info(string $message): void {
 		if (function_exists('cacti_log')) {
 			cacti_log('NOTE: ' . $message, false, self::ENVIRON);
 		}
 	}
 
+	/**
+	 * Log a warning message to Cacti's log when cacti_log() is available.
+	 *
+	 * @param string $message Warning log message.
+	 * @return void
+	 */
 	public static function warning(string $message): void {
 		if (function_exists('cacti_log')) {
 			cacti_log('WARNING: ' . $message, false, self::ENVIRON);
 		}
 	}
 
+	/**
+	 * Log an error message to Cacti's log when cacti_log() is available.
+	 *
+	 * @param string $message Error log message.
+	 * @return void
+	 */
 	public static function error(string $message): void {
 		if (function_exists('cacti_log')) {
 			cacti_log('ERROR: ' . $message, false, self::ENVIRON);

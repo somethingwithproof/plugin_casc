@@ -184,6 +184,12 @@ final class SecretPolicy {
 		'path_spine_config',
 	];
 
+	/**
+	 * Determine whether a setting name is hard-blocked from CasC export and apply.
+	 *
+	 * @param string $name Cacti setting name.
+	 * @return bool True when the setting is hard-blocked.
+	 */
 	public static function isBlockedSetting(string $name): bool {
 		if (in_array($name, self::BLOCKED_SETTINGS, true)) {
 			return true;
@@ -194,10 +200,22 @@ final class SecretPolicy {
 			|| str_starts_with(strtolower($name), 'rsa_private');
 	}
 
+	/**
+	 * Determine whether a setting stores credential material requiring redaction.
+	 *
+	 * @param string $name Cacti setting name.
+	 * @return bool True when the setting is a secret key.
+	 */
 	public static function isSecretSetting(string $name): bool {
 		return in_array($name, self::SECRET_SETTINGS, true) || $name === 'snmp_community';
 	}
 
+	/**
+	 * Determine whether a setting belongs to the declarative settings allowlist.
+	 *
+	 * @param string $name Cacti setting name.
+	 * @return bool True when the setting may be managed in spec.settings.values.
+	 */
 	public static function isDeclarativeSetting(string $name): bool {
 		if (self::isBlockedSetting($name)) {
 			return false;
@@ -206,14 +224,33 @@ final class SecretPolicy {
 		return in_array($name, self::DECLARATIVE_SETTINGS, true);
 	}
 
+	/**
+	 * Determine whether a setting is an installation-local reference path.
+	 *
+	 * @param string $name Cacti setting name.
+	 * @return bool True when the setting belongs in reference.paths.
+	 */
 	public static function isReferencePathSetting(string $name): bool {
 		return in_array($name, self::REFERENCE_PATH_SETTINGS, true);
 	}
 
+	/**
+	 * Determine whether a database table/column pair holds secret credentials.
+	 *
+	 * @param string $table Cacti table name.
+	 * @param string $column Column name within the table.
+	 * @return bool True when the column is classified as a secret.
+	 */
 	public static function isSecretColumn(string $table, string $column): bool {
 		return in_array($column, self::SECRET_COLUMNS[$table] ?? [], true);
 	}
 
+	/**
+	 * Check whether a string uses a typed secret reference prefix (env:, file:, vault:).
+	 *
+	 * @param string $value Candidate field value.
+	 * @return bool True when the value is a typed secret reference.
+	 */
 	public static function isSecretReference(string $value): bool {
 		return str_starts_with($value, 'env:')
 			|| str_starts_with($value, 'file:')
@@ -222,6 +259,12 @@ final class SecretPolicy {
 
 	/**
 	 * Redact a secret value for manifest export. Never returns plaintext.
+	 *
+	 * @param string $logicalKey Logical identifier used to derive env: placeholder names.
+	 * @param string $rawValue Raw stored secret value.
+	 * @param bool $omitSecrets Whether to omit secret fields entirely from export.
+	 * @param bool $usePlaceholderRef Whether to emit env: placeholder names instead of <redacted>.
+	 * @return string|null Redacted reference, marker, or null when omitted/empty.
 	 */
 	public static function exportSecret(string $logicalKey, string $rawValue, bool $omitSecrets = false, bool $usePlaceholderRef = true): ?string {
 		if ($rawValue === '' || $omitSecrets) {
@@ -248,6 +291,9 @@ final class SecretPolicy {
 
 	/**
 	 * Mask any secret field before emitting diffs, logs, or audit records.
+	 *
+	 * @param string $value Secret value or typed reference.
+	 * @return string Empty string, original typed reference, or <redacted> marker.
 	 */
 	public static function maskForDiff(string $value): string {
 		if ($value === '') {

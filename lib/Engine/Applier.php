@@ -30,6 +30,11 @@ use Somethingwithproof\Casc\Secret\SecretResolver;
  * replication/poller-cache propagation, and zero-secret audit recording.
  */
 final class Applier {
+	/**
+	 * Construct a transactional applier using the given Planner instance.
+	 *
+	 * @param Planner $planner Reconciliation planner used for pre-apply drift checks.
+	 */
 	public function __construct(
 		private readonly Planner $planner,
 	) {
@@ -39,7 +44,14 @@ final class Applier {
 	 * Apply a manifest only when the live plan hash computed inside the
 	 * transaction matches $confirmPlanHash.
 	 *
-	 * @param array<string, mixed> $options
+	 * @param StateRepository $repo Active state repository.
+	 * @param CascDocument $document Parsed CasC manifest document.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param string $confirmPlanHash Confirmed 64-char SHA-256 plan hash.
+	 * @param string $actor Operator identity recorded in plugin_casc_audit.
+	 * @param string $source Invocation channel ('cli' or 'web').
+	 * @param array<string, mixed> $options Apply options (baseDir, prune, templateCompilers).
+	 * @return ApplyResult Execution outcome including audit ID and replication flags.
 	 */
 	public function apply(
 		StateRepository $repo,
@@ -145,8 +157,14 @@ final class Applier {
 	/**
 	 * Write an audit record with counts and masked action summaries (zero secrets).
 	 *
-	 * @param list<PlanAction> $applied
-	 * @param list<string> $errors
+	 * @param StateRepository $repo Active state repository.
+	 * @param string $actor Operator identity.
+	 * @param string $source Invocation source ('cli' or 'web').
+	 * @param string $planHash Plan hash associated with the apply attempt.
+	 * @param string $status Outcome status ('succeeded', 'noop', 'drifted', 'refused', 'failed').
+	 * @param list<PlanAction> $applied Applied plan actions.
+	 * @param list<string> $errors Error messages recorded on failure or refusal.
+	 * @return int Inserted audit row ID.
 	 */
 	private function writeAudit(
 		StateRepository $repo,

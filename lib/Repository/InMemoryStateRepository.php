@@ -82,6 +82,9 @@ final class InMemoryStateRepository implements StateRepository {
 	/** @var array<string, mixed>|null */
 	private ?array $snapshot = null;
 
+	/**
+	 * Initialize the in-memory repository seeded with Cacti's primary poller id=1.
+	 */
 	public function __construct() {
 		// Seed primary poller id=1 as Cacti installs always have one.
 		$this->pollers[1] = [
@@ -105,26 +108,41 @@ final class InMemoryStateRepository implements StateRepository {
 		];
 	}
 
+	/**
+	 * Snapshot current in-memory collections to support rollback.
+	 *
+	 * @return void
+	 */
 	public function beginTransaction(): void {
 		$this->snapshot = [
-			'settings'       => $this->settings,
-			'sites'          => $this->sites,
-			'pollers'        => $this->pollers,
-			'devices'        => $this->devices,
-			'trees'          => $this->trees,
-			'plugins'        => $this->plugins,
-			'imported'       => $this->importedTemplates,
-			'nextSiteId'     => $this->nextSiteId,
-			'nextPollerId'   => $this->nextPollerId,
-			'nextDeviceId'   => $this->nextDeviceId,
-			'nextTreeId'     => $this->nextTreeId,
+			'settings'     => $this->settings,
+			'sites'        => $this->sites,
+			'pollers'      => $this->pollers,
+			'devices'      => $this->devices,
+			'trees'        => $this->trees,
+			'plugins'      => $this->plugins,
+			'imported'     => $this->importedTemplates,
+			'nextSiteId'   => $this->nextSiteId,
+			'nextPollerId' => $this->nextPollerId,
+			'nextDeviceId' => $this->nextDeviceId,
+			'nextTreeId'   => $this->nextTreeId,
 		];
 	}
 
+	/**
+	 * Discard the transaction snapshot, committing mutations.
+	 *
+	 * @return void
+	 */
 	public function commit(): void {
 		$this->snapshot = null;
 	}
 
+	/**
+	 * Restore all in-memory collections from the active transaction snapshot.
+	 *
+	 * @return void
+	 */
 	public function rollback(): void {
 		if ($this->snapshot === null) {
 			return;
@@ -159,6 +177,12 @@ final class InMemoryStateRepository implements StateRepository {
 		$this->snapshot          = null;
 	}
 
+	/**
+	 * Record a replication trigger and mark remote pollers as requiring sync.
+	 *
+	 * @param string $class Cacti replication class.
+	 * @return void
+	 */
 	public function triggerReplication(string $class = 'all'): void {
 		$this->replications[] = $class;
 
@@ -169,28 +193,63 @@ final class InMemoryStateRepository implements StateRepository {
 		}
 	}
 
+	/**
+	 * Record a poller cache update trigger for assertions.
+	 *
+	 * @param int|null $hostId Target host ID or null for global rebuild.
+	 * @return void
+	 */
 	public function triggerPollerCacheUpdate(?int $hostId = null): void {
 		$this->pollerCacheUpdates[] = $hostId;
 	}
 
+	/**
+	 * Return all in-memory settings.
+	 *
+	 * @return array<string, string>
+	 */
 	public function getSettings(): array {
 		return $this->settings;
 	}
 
+	/**
+	 * Store a setting value in memory.
+	 *
+	 * @param string $name Setting name.
+	 * @param string $value Setting value.
+	 * @return void
+	 */
 	public function setSetting(string $name, string $value): void {
 		$this->maybeFail('setSetting');
 		$this->settings[$name] = $value;
 	}
 
+	/**
+	 * Delete a setting from memory.
+	 *
+	 * @param string $name Setting name.
+	 * @return void
+	 */
 	public function deleteSetting(string $name): void {
 		$this->maybeFail('deleteSetting');
 		unset($this->settings[$name]);
 	}
 
+	/**
+	 * Return all stored sites as a list.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	public function getSites(): array {
 		return array_values($this->sites);
 	}
 
+	/**
+	 * Insert or update a site in memory and return its ID.
+	 *
+	 * @param array<string, mixed> $site Site payload.
+	 * @return int Saved site ID.
+	 */
 	public function saveSite(array $site): int {
 		$this->maybeFail('saveSite');
 		$id = isset($site['id']) && is_int($site['id']) && $site['id'] > 0 ? $site['id'] : $this->nextSiteId++;
@@ -205,15 +264,32 @@ final class InMemoryStateRepository implements StateRepository {
 		return $id;
 	}
 
+	/**
+	 * Delete a site from memory by ID.
+	 *
+	 * @param int $id Site ID.
+	 * @return void
+	 */
 	public function deleteSite(int $id): void {
 		$this->maybeFail('deleteSite');
 		unset($this->sites[$id]);
 	}
 
+	/**
+	 * Return all stored pollers as a list.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	public function getPollers(): array {
 		return array_values($this->pollers);
 	}
 
+	/**
+	 * Insert or update a poller in memory and return its ID.
+	 *
+	 * @param array<string, mixed> $poller Poller payload.
+	 * @return int Saved poller ID.
+	 */
 	public function savePoller(array $poller): int {
 		$this->maybeFail('savePoller');
 		$id = isset($poller['id']) && is_int($poller['id']) && $poller['id'] > 0 ? $poller['id'] : $this->nextPollerId++;
@@ -228,6 +304,12 @@ final class InMemoryStateRepository implements StateRepository {
 		return $id;
 	}
 
+	/**
+	 * Delete a remote poller from memory while protecting primary poller id=1.
+	 *
+	 * @param int $id Poller ID.
+	 * @return void
+	 */
 	public function deletePoller(int $id): void {
 		$this->maybeFail('deletePoller');
 
@@ -238,18 +320,41 @@ final class InMemoryStateRepository implements StateRepository {
 		unset($this->pollers[$id]);
 	}
 
+	/**
+	 * Return seeded host templates.
+	 *
+	 * @return list<array{id: int, hash: string, name: string, class: string}>
+	 */
 	public function getHostTemplates(): array {
 		return $this->hostTemplates;
 	}
 
+	/**
+	 * Return seeded SNMP data queries.
+	 *
+	 * @return list<array{id: int, hash: string, name: string}>
+	 */
 	public function getDataQueries(): array {
 		return $this->dataQueries;
 	}
 
+	/**
+	 * Return seeded graph templates.
+	 *
+	 * @return list<array{id: int, hash: string, name: string}>
+	 */
 	public function getGraphTemplates(): array {
 		return $this->graphTemplates;
 	}
 
+	/**
+	 * Record an imported template XML payload in memory.
+	 *
+	 * @param string $xml Canonical <cacti> template XML.
+	 * @param string $profileName Data source profile name.
+	 * @param bool $replaceSuggestedValues Whether to overwrite suggested values.
+	 * @return bool Always returns true unless failOnOperation triggers.
+	 */
 	public function importTemplateXml(string $xml, string $profileName, bool $replaceSuggestedValues): bool {
 		$this->maybeFail('importTemplateXml');
 		$this->importedTemplates[] = [
@@ -262,6 +367,14 @@ final class InMemoryStateRepository implements StateRepository {
 		return true;
 	}
 
+	/**
+	 * Record an imported template package path in memory.
+	 *
+	 * @param string $filePath Verified package file path.
+	 * @param string $profileName Data source profile name.
+	 * @param bool $replaceSuggestedValues Whether to overwrite suggested values.
+	 * @return bool Always returns true unless failOnOperation triggers.
+	 */
 	public function importTemplatePackage(string $filePath, string $profileName, bool $replaceSuggestedValues): bool {
 		$this->maybeFail('importTemplatePackage');
 		$this->importedTemplates[] = [
@@ -274,14 +387,32 @@ final class InMemoryStateRepository implements StateRepository {
 		return true;
 	}
 
+	/**
+	 * Look up a seeded template export XML string by type and ID.
+	 *
+	 * @param string $type Template type.
+	 * @param int $id Template numeric ID.
+	 * @return string|null Exported XML string or null.
+	 */
 	public function exportTemplateXml(string $type, int $id): ?string {
 		return $this->templateExports[$type . ':' . $id] ?? null;
 	}
 
+	/**
+	 * Return all stored devices as a list.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	public function getDevices(): array {
 		return array_values($this->devices);
 	}
 
+	/**
+	 * Insert or update a device in memory and return its host ID.
+	 *
+	 * @param array<string, mixed> $device Device payload.
+	 * @return int Saved device ID.
+	 */
 	public function saveDevice(array $device): int {
 		$this->maybeFail('saveDevice');
 		$id = isset($device['id']) && is_int($device['id']) && $device['id'] > 0 ? $device['id'] : $this->nextDeviceId++;
@@ -296,15 +427,32 @@ final class InMemoryStateRepository implements StateRepository {
 		return $id;
 	}
 
+	/**
+	 * Delete a device from memory by ID.
+	 *
+	 * @param int $id Device host ID.
+	 * @return void
+	 */
 	public function deleteDevice(int $id): void {
 		$this->maybeFail('deleteDevice');
 		unset($this->devices[$id]);
 	}
 
+	/**
+	 * Return all stored graph trees as a list.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	public function getTrees(): array {
 		return array_values($this->trees);
 	}
 
+	/**
+	 * Insert or update a graph tree in memory and return its ID.
+	 *
+	 * @param array<string, mixed> $tree Graph tree payload.
+	 * @return int Saved tree ID.
+	 */
 	public function saveTree(array $tree): int {
 		$this->maybeFail('saveTree');
 		$id = isset($tree['id']) && is_int($tree['id']) && $tree['id'] > 0 ? $tree['id'] : $this->nextTreeId++;
@@ -319,15 +467,33 @@ final class InMemoryStateRepository implements StateRepository {
 		return $id;
 	}
 
+	/**
+	 * Delete a graph tree from memory by ID.
+	 *
+	 * @param int $id Graph tree ID.
+	 * @return void
+	 */
 	public function deleteTree(int $id): void {
 		$this->maybeFail('deleteTree');
 		unset($this->trees[$id]);
 	}
 
+	/**
+	 * Return all stored plugins as a list.
+	 *
+	 * @return list<array{directory: string, name: string, status: int, version: string}>
+	 */
 	public function getPlugins(): array {
 		return array_values($this->plugins);
 	}
 
+	/**
+	 * Set the enabled flag for a plugin slug in memory.
+	 *
+	 * @param string $slug Plugin directory slug.
+	 * @param bool $enabled Target enabled state.
+	 * @return void
+	 */
 	public function setPluginEnabled(string $slug, bool $enabled): void {
 		$this->maybeFail('setPluginEnabled');
 
@@ -345,6 +511,12 @@ final class InMemoryStateRepository implements StateRepository {
 		$this->plugins[$slug]['status'] = $enabled ? 1 : 0;
 	}
 
+	/**
+	 * Prepend an audit entry in memory and return its assigned ID.
+	 *
+	 * @param array<string, mixed> $entry Audit column map.
+	 * @return int Inserted audit ID.
+	 */
 	public function recordAudit(array $entry): int {
 		$id          = $this->nextAuditId++;
 		$entry['id'] = $id;
@@ -353,10 +525,26 @@ final class InMemoryStateRepository implements StateRepository {
 		return $id;
 	}
 
+	/**
+	 * Return the most recent recorded audit entries up to $limit.
+	 *
+	 * @param int $limit Maximum entries to return.
+	 * @return list<array<string, mixed>>
+	 */
 	public function getRecentAudits(int $limit = 50): array {
 		return array_slice($this->audits, 0, max(1, $limit));
 	}
 
+	/**
+	 * Store a computed plan hash record in memory.
+	 *
+	 * @param string $planHash Canonical SHA-256 plan hash.
+	 * @param string $actor Operator identity.
+	 * @param string $manifestSha256 Canonical manifest SHA-256 hash.
+	 * @param int $actionCount Number of actions in the plan.
+	 * @param int $timestamp Unix epoch timestamp.
+	 * @return void
+	 */
 	public function recordPlan(string $planHash, string $actor, string $manifestSha256, int $actionCount, int $timestamp): void {
 		$this->plans[$planHash] = [
 			'plan_hash'       => $planHash,
@@ -367,6 +555,12 @@ final class InMemoryStateRepository implements StateRepository {
 		];
 	}
 
+	/**
+	 * Throw a simulated RuntimeException when $failOnOperation matches $op.
+	 *
+	 * @param string $op Repository operation name.
+	 * @return void
+	 */
 	private function maybeFail(string $op): void {
 		if ($this->failOnOperation === $op) {
 			throw new \RuntimeException('Simulated failure in ' . $op);

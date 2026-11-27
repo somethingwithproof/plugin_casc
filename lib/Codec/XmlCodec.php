@@ -39,6 +39,14 @@ final class XmlCodec {
 	/** @var array<string, int> */
 	private array $lineMap = [];
 
+	/**
+	 * Parse hardened canonical CasC XML into a line-indexed ParsedTree.
+	 *
+	 * @param string $text Raw XML document text.
+	 * @param int $maxBytes Maximum allowed byte length.
+	 * @param int $maxDepth Maximum allowed element nesting depth.
+	 * @return ParsedTree Decoded tree with source line mapping.
+	 */
 	public static function parse(string $text, int $maxBytes = self::MAX_BYTES, int $maxDepth = self::MAX_DEPTH): ParsedTree {
 		if ($maxDepth < 1) {
 			throw new CodecException('Maximum nesting depth must be at least 1');
@@ -91,7 +99,11 @@ final class XmlCodec {
 	}
 
 	/**
-	 * @param array<string, mixed> $data Canonical CascDocument array
+	 * Serialize a canonical CascDocument array into formatted canonical XML.
+	 *
+	 * @param array<string, mixed> $data Canonical CascDocument array.
+	 * @param int $maxDepth Maximum allowed element nesting depth.
+	 * @return string Canonical XML text.
 	 */
 	public static function write(array $data, int $maxDepth = self::MAX_DEPTH): string {
 		$dom               = new \DOMDocument('1.0', 'UTF-8');
@@ -129,7 +141,14 @@ final class XmlCodec {
 	}
 
 	/**
-	 * @param array<array-key, mixed> $map
+	 * Append sorted <entry> elements for a map container onto $parent.
+	 *
+	 * @param \DOMDocument $dom Owning DOM document.
+	 * @param \DOMElement $parent Parent element receiving map entries.
+	 * @param array<array-key, mixed> $map Associative map to serialize.
+	 * @param int $depth Current XML nesting depth.
+	 * @param int $maxDepth Maximum allowed XML nesting depth.
+	 * @return void
 	 */
 	private static function writeMapEntries(\DOMDocument $dom, \DOMElement $parent, array $map, int $depth, int $maxDepth): void {
 		if ($depth > $maxDepth) {
@@ -149,6 +168,16 @@ final class XmlCodec {
 		}
 	}
 
+	/**
+	 * Populate type attribute and child text or container nodes for a value.
+	 *
+	 * @param \DOMDocument $dom Owning DOM document.
+	 * @param \DOMElement $element Element receiving type attribute and value content.
+	 * @param mixed $value Scalar, null, list, or map value.
+	 * @param int $depth Current XML nesting depth.
+	 * @param int $maxDepth Maximum allowed XML nesting depth.
+	 * @return void
+	 */
 	private static function writeTypedValue(\DOMDocument $dom, \DOMElement $element, mixed $value, int $depth, int $maxDepth): void {
 		if ($depth > $maxDepth) {
 			throw new CodecException(sprintf('Nesting is deeper than %d levels', $maxDepth));
@@ -217,12 +246,26 @@ final class XmlCodec {
 		self::writeMapEntries($dom, $element, $value, $depth, $maxDepth);
 	}
 
+	/**
+	 * Verify that text contains only legal XML 1.0 character code points.
+	 *
+	 * @param string $text Candidate UTF-8 string.
+	 * @return void
+	 */
 	private static function assertXml10Text(string $text): void {
 		if (preg_match('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', $text) === 1) {
 			throw new CodecException('A value contains a character XML 1.0 cannot encode');
 		}
 	}
 
+	/**
+	 * Recursively enforce maximum XML element nesting depth.
+	 *
+	 * @param \DOMNode $node Current DOM node.
+	 * @param int $depth Current depth level.
+	 * @param int $max Maximum allowed depth level.
+	 * @return void
+	 */
 	private static function checkDepth(\DOMNode $node, int $depth, int $max): void {
 		if ($depth > $max) {
 			throw new CodecException(sprintf('Nesting is deeper than %d levels', $max), $node->getLineNo());
@@ -235,6 +278,12 @@ final class XmlCodec {
 		}
 	}
 
+	/**
+	 * Decode the <cacti-casc> root element and its sections into a ParsedTree.
+	 *
+	 * @param \DOMElement $root Root <cacti-casc> DOM element.
+	 * @return ParsedTree Decoded tree with line numbers.
+	 */
 	private function decodeRoot(\DOMElement $root): ParsedTree {
 		$data = [];
 
@@ -266,6 +315,10 @@ final class XmlCodec {
 	}
 
 	/**
+	 * Decode a map container element composed of uniquely keyed <entry> children.
+	 *
+	 * @param \DOMElement $parent Map container DOM element.
+	 * @param string $path Slash-delimited path for line map tracking.
 	 * @return array<string, mixed>
 	 */
 	private function decodeMap(\DOMElement $parent, string $path): array {
@@ -304,6 +357,13 @@ final class XmlCodec {
 		return $map;
 	}
 
+	/**
+	 * Decode a typed <entry> or <item> element according to its type attribute.
+	 *
+	 * @param \DOMElement $element Typed DOM element.
+	 * @param string $path Slash-delimited path for line map tracking.
+	 * @return mixed Decoded PHP value.
+	 */
 	private function decodeValue(\DOMElement $element, string $path): mixed {
 		$type = $element->getAttribute('type');
 
@@ -320,6 +380,10 @@ final class XmlCodec {
 	}
 
 	/**
+	 * Decode a list container element composed of typed <item> children.
+	 *
+	 * @param \DOMElement $parent List container DOM element.
+	 * @param string $path Slash-delimited path for line map tracking.
 	 * @return list<mixed>
 	 */
 	private function decodeList(\DOMElement $parent, string $path): array {
@@ -348,6 +412,12 @@ final class XmlCodec {
 		return $list;
 	}
 
+	/**
+	 * Decode a null-typed element verifying it has no text payload.
+	 *
+	 * @param \DOMElement $element Element with type="null".
+	 * @return null
+	 */
 	private function decodeNull(\DOMElement $element): null {
 		if ($this->decodeLeafText($element) !== '') {
 			throw new CodecException('A null element must be empty', $element->getLineNo());
@@ -356,6 +426,12 @@ final class XmlCodec {
 		return null;
 	}
 
+	/**
+	 * Decode a strict boolean element ("true" or "false").
+	 *
+	 * @param \DOMElement $element Element with type="bool".
+	 * @return bool Decoded boolean value.
+	 */
 	private function decodeBool(\DOMElement $element): bool {
 		$text = $this->decodeLeafText($element);
 
@@ -370,6 +446,12 @@ final class XmlCodec {
 		throw new CodecException(sprintf('Invalid boolean value "%s"', $text), $element->getLineNo());
 	}
 
+	/**
+	 * Decode a canonical base-10 integer element.
+	 *
+	 * @param \DOMElement $element Element with type="int".
+	 * @return int Decoded integer value.
+	 */
 	private function decodeInt(\DOMElement $element): int {
 		$text = $this->decodeLeafText($element);
 
@@ -380,6 +462,12 @@ final class XmlCodec {
 		return (int) $text;
 	}
 
+	/**
+	 * Decode a canonical decimal float element.
+	 *
+	 * @param \DOMElement $element Element with type="float".
+	 * @return float Decoded float value.
+	 */
 	private function decodeFloat(\DOMElement $element): float {
 		$text = $this->decodeLeafText($element);
 
@@ -390,6 +478,12 @@ final class XmlCodec {
 		return (float) $text;
 	}
 
+	/**
+	 * Concatenate leaf text nodes inside a scalar element while rejecting child elements.
+	 *
+	 * @param \DOMElement $element Scalar DOM element.
+	 * @return string Concatenated text content.
+	 */
 	private function decodeLeafText(\DOMElement $element): string {
 		$out = '';
 
@@ -409,6 +503,9 @@ final class XmlCodec {
 	}
 
 	/**
+	 * Return direct child DOM elements while rejecting unexpected non-whitespace text nodes.
+	 *
+	 * @param \DOMElement $parent Container DOM element.
 	 * @return list<\DOMElement>
 	 */
 	private function childElements(\DOMElement $parent): array {

@@ -36,13 +36,21 @@ use Somethingwithproof\Casc\Engine\CascService;
  *   drift:    json: 0 clean, 2 drift, 1 error; nagios: 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN
  */
 final class CliRunner {
+	/**
+	 * Construct a CLI command runner backed by a CasC service instance.
+	 *
+	 * @param CascService $service Active CasC orchestration service.
+	 */
 	public function __construct(
 		private readonly CascService $service,
 	) {
 	}
 
 	/**
-	 * @param list<string> $argv Arguments excluding script name
+	 * Execute a CasC CLI subcommand and return exit code, stdout, and stderr.
+	 *
+	 * @param list<string> $argv Arguments excluding script name.
+	 * @param string $actor Operator identity recorded in plan/audit logs.
 	 * @return array{exitCode: int, stdout: string, stderr: string}
 	 */
 	public function run(array $argv, string $actor = 'cli'): array {
@@ -69,6 +77,11 @@ final class CliRunner {
 		};
 	}
 
+	/**
+	 * Return CLI usage instructions for all supported CasC subcommands.
+	 *
+	 * @return string Multi-line usage help text.
+	 */
 	public static function usage(): string {
 		return "usage: cli/casc.php export [--format=yaml|xml] [--output=PATH] [--split-templates=DIR] [--omit-secrets]\n"
 			. "       cli/casc.php validate --file=PATH [--format=yaml|xml]\n"
@@ -133,7 +146,10 @@ final class CliRunner {
 	}
 
 	/**
-	 * @param array<string, string|bool> $options
+	 * Execute the plan subcommand and format output as text or JSON.
+	 *
+	 * @param array<string, string|bool> $options Parsed CLI options.
+	 * @param string $actor Operator identity recorded in plugin_casc_plan.
 	 * @return array{exitCode: int, stdout: string, stderr: string}
 	 */
 	private function cmdPlan(array $options, string $actor): array {
@@ -168,7 +184,10 @@ final class CliRunner {
 	}
 
 	/**
-	 * @param array<string, string|bool> $options
+	 * Execute the hash-confirmed apply subcommand.
+	 *
+	 * @param array<string, string|bool> $options Parsed CLI options.
+	 * @param string $actor Operator identity recorded in plugin_casc_audit.
 	 * @return array{exitCode: int, stdout: string, stderr: string}
 	 */
 	private function cmdApply(array $options, string $actor): array {

@@ -32,7 +32,13 @@ final class PlanAction {
 	public const ERROR   = 'error';
 
 	/**
-	 * @param array<string, array{from: mixed, to: mixed}> $changes Masked field-level diff
+	 * Construct a single planned operation.
+	 *
+	 * @param string $domain Manifest domain or plugin namespace.
+	 * @param string $operation Action kind (create, update, delete, warning, error).
+	 * @param string $naturalKey Target resource natural key.
+	 * @param string $summary Human-readable operation summary.
+	 * @param array<string, array{from: mixed, to: mixed}> $changes Masked field-level diff.
 	 */
 	public function __construct(
 		public readonly string $domain,
@@ -43,6 +49,11 @@ final class PlanAction {
 	) {
 	}
 
+	/**
+	 * Check whether this action represents a state mutation.
+	 *
+	 * @return bool True for create, update, or delete operations.
+	 */
 	public function isMutation(): bool {
 		return $this->operation === self::CREATE
 			|| $this->operation === self::UPDATE
