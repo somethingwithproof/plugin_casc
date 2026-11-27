@@ -193,16 +193,16 @@ final class TreesProvider implements ResourceProvider {
 			$byName[self::str($row['name'] ?? '')] = $row;
 		}
 
-		$desiredNames = [];
+		$desiredNameSet = [];
 
 		foreach ($desired as $entry) {
 			if (!is_array($entry) || !is_string($entry['name'] ?? null)) {
 				continue;
 			}
 
-			$name           = trim($entry['name']);
-			$desiredNames[] = $name;
-			$existing       = $byName[$name] ?? null;
+			$name                  = trim($entry['name']);
+			$desiredNameSet[$name] = true;
+			$existing              = $byName[$name] ?? null;
 
 			if ($existing === null) {
 				$actions[] = new PlanAction('trees', PlanAction::CREATE, $name, sprintf('Create graph tree "%s"', $name));
@@ -221,7 +221,7 @@ final class TreesProvider implements ResourceProvider {
 
 		if ($prune) {
 			foreach ($byName as $name => $row) {
-				if (!in_array($name, $desiredNames, true)) {
+				if (!isset($desiredNameSet[$name])) {
 					$actions[] = new PlanAction('trees', PlanAction::DELETE, $name, sprintf('Prune unmanaged graph tree "%s"', $name));
 				}
 			}
@@ -240,8 +240,16 @@ final class TreesProvider implements ResourceProvider {
 	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
 	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
-		$plan    = $this->plan($repo, $desired, $secrets, $options);
+		$plan    = self::extractPlannedActions($options) ?? $this->plan($repo, $desired, $secrets, $options);
 		$applied = [];
+
+		if ($plan === []) {
+			return [
+				'applied'          => [],
+				'needsReplication' => false,
+				'needsPollerCache' => false,
+			];
+		}
 
 		$byName = [];
 
@@ -346,6 +354,28 @@ final class TreesProvider implements ResourceProvider {
 		return isset($wrapped['items']) && is_array($wrapped['items']) && array_is_list($wrapped['items'])
 			? $wrapped['items']
 			: [];
+	}
+
+	/**
+	 * Extract precomputed domain actions supplied by Applier::apply() when present.
+	 *
+	 * @param array<string, mixed> $options Apply options map.
+	 * @return list<PlanAction>|null Precomputed actions or null when standalone.
+	 */
+	private static function extractPlannedActions(array $options): ?array {
+		if (!isset($options['plannedActions']) || !is_array($options['plannedActions'])) {
+			return null;
+		}
+
+		$actions = [];
+
+		foreach ($options['plannedActions'] as $action) {
+			if ($action instanceof PlanAction) {
+				$actions[] = $action;
+			}
+		}
+
+		return $actions;
 	}
 
 	/**

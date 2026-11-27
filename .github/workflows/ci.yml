@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           php -v
-          for f in *.php include/*.php cli/*.php; do
+          for f in *.php include/*.php cli/*.php scripts/*.php; do
             php -l "$f"
           done
 
@@ -88,7 +88,7 @@ jobs:
       - name: Lint all PHP files
         run: |
           set -euo pipefail
-          find lib tests cli include -name '*.php' -print0 | xargs -0 -n1 php -l
+          find lib tests cli include scripts -name '*.php' -print0 | xargs -0 -n1 php -l
           for f in *.php; do php -l "$f"; done
 
       - name: Install dev tools (zero runtime dependencies)
@@ -239,3 +239,13 @@ jobs:
           php plugins/casc/cli/casc.php export --format=xml --omit-secrets --output=/tmp/cacti-export.xml
           php plugins/casc/cli/casc.php validate --file=/tmp/cacti-export.xml
           php plugins/casc/cli/casc.php drift --file=/tmp/cacti-export.xml --format=json
+          stats_out="$(php plugins/casc/scripts/ss_casc_stats.php)"
+          echo "ss_casc_stats: $stats_out"
+          php -r '
+            $out = trim($argv[1]);
+            $re = "/^providers_registered:(\d+|U) drift_items:(\d+|U) last_plan_actions:(\d+|U) last_apply_ms:(\d+|U) validation_errors:(\d+|U) secret_dirs_configured:(\d+|U)$/";
+            if (preg_match($re, $out) !== 1) {
+              fwrite(STDERR, "Unexpected ss_casc_stats output: $out\n");
+              exit(1);
+            }
+          ' "$stats_out"

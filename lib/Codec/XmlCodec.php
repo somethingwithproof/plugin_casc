@@ -40,14 +40,27 @@ final class XmlCodec {
 	private array $lineMap = [];
 
 	/**
+	 * Initialize an XML codec decoder bound to a maximum element nesting depth.
+	 *
+	 * @param int $maxDepth Maximum permitted element nesting depth.
+	 * @param bool $fullLineMap Whether to populate lineMap for every nested path (true) or only schema paths (false).
+	 */
+	private function __construct(
+		private readonly int $maxDepth,
+		private readonly bool $fullLineMap = true,
+	) {
+	}
+
+	/**
 	 * Parse hardened canonical CasC XML into a line-indexed ParsedTree.
 	 *
 	 * @param string $text Raw XML document text.
 	 * @param int $maxBytes Maximum allowed byte length.
 	 * @param int $maxDepth Maximum allowed element nesting depth.
+	 * @param bool $fullLineMap Whether to populate lineMap for every nested path (true) or only schema paths (false).
 	 * @return ParsedTree Decoded tree with source line mapping.
 	 */
-	public static function parse(string $text, int $maxBytes = self::MAX_BYTES, int $maxDepth = self::MAX_DEPTH): ParsedTree {
+	public static function parse(string $text, int $maxBytes = self::MAX_BYTES, int $maxDepth = self::MAX_DEPTH, bool $fullLineMap = true): ParsedTree {
 		if ($maxDepth < 1) {
 			throw new CodecException('Maximum nesting depth must be at least 1');
 		}
@@ -93,9 +106,7 @@ final class XmlCodec {
 			throw new CodecException(sprintf('Root element must be <%s>', self::ROOT), $root?->getLineNo());
 		}
 
-		self::checkDepth($root, 1, $maxDepth);
-
-		return (new self())->decodeRoot($root);
+		return (new self($maxDepth, $fullLineMap))->decodeRoot($root);
 	}
 
 	/**
@@ -106,99 +117,113 @@ final class XmlCodec {
 	 * @return string Canonical XML text.
 	 */
 	public static function write(array $data, int $maxDepth = self::MAX_DEPTH): string {
-		$dom               = new \DOMDocument('1.0', 'UTF-8');
-		$dom->formatOutput = true;
-
-		$root = $dom->createElement(self::ROOT);
-		$dom->appendChild($root);
-
 		$apiVersion = is_string($data['apiVersion'] ?? null) ? $data['apiVersion'] : CascDocument::API_VERSION;
 		$kind       = is_string($data['kind'] ?? null) ? $data['kind'] : CascDocument::KIND;
 
 		self::assertXml10Text($apiVersion);
 		self::assertXml10Text($kind);
 
-		$root->setAttribute('apiVersion', $apiVersion);
-		$root->setAttribute('kind', $kind);
+		$lines = [
+			'<?xml version="1.0" encoding="UTF-8"?>',
+			sprintf(
+				'<%s apiVersion="%s" kind="%s">',
+				self::ROOT,
+				self::escapeAttr($apiVersion),
+				self::escapeAttr($kind)
+			),
+		];
+
+		$hasSections = false;
 
 		foreach (['metadata', 'spec', 'reference'] as $section) {
 			if (!isset($data[$section]) || !is_array($data[$section]) || $data[$section] === []) {
 				continue;
 			}
 
-			$sectionEl = $dom->createElement($section);
-			$root->appendChild($sectionEl);
-			self::writeMapEntries($dom, $sectionEl, $data[$section], 2, $maxDepth);
+			$hasSections = true;
+			$lines[]     = '  <' . $section . '>';
+			self::writeMapEntries($lines, $data[$section], 2, $maxDepth);
+			$lines[] = '  </' . $section . '>';
 		}
 
-		$xml = $dom->saveXML();
-
-		if ($xml === false) {
-			throw new CodecException('Failed to serialize canonical XML');
+		if (!$hasSections) {
+			$lines[1] = sprintf(
+				'<%s apiVersion="%s" kind="%s"/>',
+				self::ROOT,
+				self::escapeAttr($apiVersion),
+				self::escapeAttr($kind)
+			);
+		} else {
+			$lines[] = '</' . self::ROOT . '>';
 		}
 
-		return $xml;
+		return implode("\n", $lines) . "\n";
 	}
 
 	/**
-	 * Append sorted <entry> elements for a map container onto $parent.
+	 * Append sorted <entry> lines for a map container onto $lines.
 	 *
-	 * @param \DOMDocument $dom Owning DOM document.
-	 * @param \DOMElement $parent Parent element receiving map entries.
+	 * @param list<string> $lines Output XML line accumulator.
 	 * @param array<array-key, mixed> $map Associative map to serialize.
 	 * @param int $depth Current XML nesting depth.
 	 * @param int $maxDepth Maximum allowed XML nesting depth.
 	 * @return void
 	 */
-	private static function writeMapEntries(\DOMDocument $dom, \DOMElement $parent, array $map, int $depth, int $maxDepth): void {
+	private static function writeMapEntries(array &$lines, array $map, int $depth, int $maxDepth): void {
 		if ($depth > $maxDepth) {
 			throw new CodecException(sprintf('Nesting is deeper than %d levels', $maxDepth));
 		}
 
 		ksort($map, SORT_STRING);
 
+		$pad = str_repeat('  ', $depth);
+
 		foreach ($map as $key => $value) {
 			$keyStr = (string) $key;
 			self::assertXml10Text($keyStr);
-
-			$entry = $dom->createElement('entry');
-			$entry->setAttribute('key', $keyStr);
-			self::writeTypedValue($dom, $entry, $value, $depth + 1, $maxDepth);
-			$parent->appendChild($entry);
+			self::writeTypedElement($lines, 'entry', ' key="' . self::escapeAttr($keyStr) . '"', $value, $depth + 1, $maxDepth, $pad);
 		}
 	}
 
 	/**
-	 * Populate type attribute and child text or container nodes for a value.
+	 * Append a typed <entry> or <item> element line block onto $lines.
 	 *
-	 * @param \DOMDocument $dom Owning DOM document.
-	 * @param \DOMElement $element Element receiving type attribute and value content.
+	 * @param list<string> $lines Output XML line accumulator.
+	 * @param string $tag Element tag name ('entry' or 'item').
+	 * @param string $extraAttrs Pre-escaped leading attribute fragment (e.g. ' key="..."').
 	 * @param mixed $value Scalar, null, list, or map value.
 	 * @param int $depth Current XML nesting depth.
 	 * @param int $maxDepth Maximum allowed XML nesting depth.
+	 * @param string $pad Indentation string for this element.
 	 * @return void
 	 */
-	private static function writeTypedValue(\DOMDocument $dom, \DOMElement $element, mixed $value, int $depth, int $maxDepth): void {
+	private static function writeTypedElement(
+		array &$lines,
+		string $tag,
+		string $extraAttrs,
+		mixed $value,
+		int $depth,
+		int $maxDepth,
+		string $pad,
+	): void {
 		if ($depth > $maxDepth) {
 			throw new CodecException(sprintf('Nesting is deeper than %d levels', $maxDepth));
 		}
 
 		if ($value === null) {
-			$element->setAttribute('type', 'null');
+			$lines[] = $pad . '<' . $tag . $extraAttrs . ' type="null"/>';
 
 			return;
 		}
 
 		if (is_bool($value)) {
-			$element->setAttribute('type', 'bool');
-			$element->appendChild($dom->createTextNode($value ? 'true' : 'false'));
+			$lines[] = $pad . '<' . $tag . $extraAttrs . ' type="bool">' . ($value ? 'true' : 'false') . '</' . $tag . '>';
 
 			return;
 		}
 
 		if (is_int($value)) {
-			$element->setAttribute('type', 'int');
-			$element->appendChild($dom->createTextNode((string) $value));
+			$lines[] = $pad . '<' . $tag . $extraAttrs . ' type="int">' . $value . '</' . $tag . '>';
 
 			return;
 		}
@@ -208,16 +233,14 @@ final class XmlCodec {
 				throw new CodecException('Non-finite floats cannot be written to XML');
 			}
 
-			$element->setAttribute('type', 'float');
-			$element->appendChild($dom->createTextNode(json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR)));
+			$lines[] = $pad . '<' . $tag . $extraAttrs . ' type="float">' . json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR) . '</' . $tag . '>';
 
 			return;
 		}
 
 		if (is_string($value)) {
 			self::assertXml10Text($value);
-			$element->setAttribute('type', 'string');
-			$element->appendChild($dom->createTextNode($value));
+			$lines[] = $pad . '<' . $tag . $extraAttrs . ' type="string">' . self::escapeText($value) . '</' . $tag . '>';
 
 			return;
 		}
@@ -231,19 +254,49 @@ final class XmlCodec {
 		}
 
 		if (array_is_list($value)) {
-			$element->setAttribute('type', 'list');
+			$lines[]  = $pad . '<' . $tag . $extraAttrs . ' type="list">';
+			$childPad = $pad . '  ';
 
 			foreach ($value as $item) {
-				$itemEl = $dom->createElement('item');
-				self::writeTypedValue($dom, $itemEl, $item, $depth + 1, $maxDepth);
-				$element->appendChild($itemEl);
+				self::writeTypedElement($lines, 'item', '', $item, $depth + 1, $maxDepth, $childPad);
 			}
+
+			$lines[] = $pad . '</' . $tag . '>';
 
 			return;
 		}
 
-		$element->setAttribute('type', 'map');
-		self::writeMapEntries($dom, $element, $value, $depth, $maxDepth);
+		$lines[] = $pad . '<' . $tag . $extraAttrs . ' type="map">';
+		self::writeMapEntries($lines, $value, $depth, $maxDepth);
+		$lines[] = $pad . '</' . $tag . '>';
+	}
+
+	/**
+	 * Escape XML 1.0 attribute values including carriage return, newline, and tab.
+	 *
+	 * @param string $text Legal XML 1.0 text.
+	 * @return string Escaped XML attribute payload.
+	 */
+	private static function escapeAttr(string $text): string {
+		$escaped = htmlspecialchars($text, ENT_XML1 | ENT_COMPAT, 'UTF-8');
+
+		if (strpbrk($escaped, "\r\n\t") !== false) {
+			return strtr($escaped, ["\r" => '&#13;', "\n" => '&#10;', "\t" => '&#9;']);
+		}
+
+		return $escaped;
+	}
+
+	/**
+	 * Escape XML 1.0 text node payloads including carriage returns.
+	 *
+	 * @param string $text Legal XML 1.0 text.
+	 * @return string Escaped XML text payload.
+	 */
+	private static function escapeText(string $text): string {
+		$escaped = htmlspecialchars($text, ENT_XML1 | ENT_NOQUOTES, 'UTF-8');
+
+		return str_contains($escaped, "\r") ? str_replace("\r", '&#13;', $escaped) : $escaped;
 	}
 
 	/**
@@ -253,28 +306,12 @@ final class XmlCodec {
 	 * @return void
 	 */
 	private static function assertXml10Text(string $text): void {
+		if (YamlScalar::isPrintableAscii($text)) {
+			return;
+		}
+
 		if (preg_match('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', $text) === 1) {
 			throw new CodecException('A value contains a character XML 1.0 cannot encode');
-		}
-	}
-
-	/**
-	 * Recursively enforce maximum XML element nesting depth.
-	 *
-	 * @param \DOMNode $node Current DOM node.
-	 * @param int $depth Current depth level.
-	 * @param int $max Maximum allowed depth level.
-	 * @return void
-	 */
-	private static function checkDepth(\DOMNode $node, int $depth, int $max): void {
-		if ($depth > $max) {
-			throw new CodecException(sprintf('Nesting is deeper than %d levels', $max), $node->getLineNo());
-		}
-
-		foreach ($node->childNodes as $child) {
-			if ($child instanceof \DOMElement) {
-				self::checkDepth($child, $depth + 1, $max);
-			}
 		}
 	}
 
@@ -285,10 +322,14 @@ final class XmlCodec {
 	 * @return ParsedTree Decoded tree with line numbers.
 	 */
 	private function decodeRoot(\DOMElement $root): ParsedTree {
+		if (1 > $this->maxDepth) {
+			throw new CodecException(sprintf('Nesting is deeper than %d levels', $this->maxDepth), $root->getLineNo());
+		}
+
 		$data = [];
 
 		foreach ($root->attributes as $attr) {
-			if (!in_array($attr->nodeName, ['apiVersion', 'kind'], true)) {
+			if ($attr->nodeName !== 'apiVersion' && $attr->nodeName !== 'kind') {
 				throw new CodecException(sprintf('Attribute "%s" is not allowed on <%s>', $attr->nodeName, self::ROOT), $root->getLineNo());
 			}
 
@@ -296,10 +337,20 @@ final class XmlCodec {
 			$this->lineMap[$attr->nodeName] = $root->getLineNo();
 		}
 
-		foreach ($this->childElements($root) as $child) {
+		foreach ($root->childNodes as $child) {
+			if (!$child instanceof \DOMElement) {
+				$this->assertValidNonElementChild($child, $root->nodeName);
+
+				continue;
+			}
+
+			if (2 > $this->maxDepth) {
+				throw new CodecException(sprintf('Nesting is deeper than %d levels', $this->maxDepth), $child->getLineNo());
+			}
+
 			$name = $child->nodeName;
 
-			if (!in_array($name, ['metadata', 'spec', 'reference'], true)) {
+			if ($name !== 'metadata' && $name !== 'spec' && $name !== 'reference') {
 				throw new CodecException(sprintf('Unexpected section <%s> inside <%s>', $name, self::ROOT), $child->getLineNo());
 			}
 
@@ -308,7 +359,7 @@ final class XmlCodec {
 			}
 
 			$this->lineMap[$name] = $child->getLineNo();
-			$data[$name]          = $this->decodeMap($child, $name);
+			$data[$name]          = $this->decodeMap($child, $name, 2);
 		}
 
 		return new ParsedTree($data, $this->lineMap);
@@ -319,12 +370,24 @@ final class XmlCodec {
 	 *
 	 * @param \DOMElement $parent Map container DOM element.
 	 * @param string $path Slash-delimited path for line map tracking.
+	 * @param int $depth Current element nesting depth of $parent.
 	 * @return array<string, mixed>
 	 */
-	private function decodeMap(\DOMElement $parent, string $path): array {
-		$map = [];
+	private function decodeMap(\DOMElement $parent, string $path, int $depth): array {
+		$map        = [];
+		$childDepth = $depth + 1;
 
-		foreach ($this->childElements($parent) as $child) {
+		foreach ($parent->childNodes as $child) {
+			if (!$child instanceof \DOMElement) {
+				$this->assertValidNonElementChild($child, $parent->nodeName);
+
+				continue;
+			}
+
+			if ($childDepth > $this->maxDepth) {
+				throw new CodecException(sprintf('Nesting is deeper than %d levels', $this->maxDepth), $child->getLineNo());
+			}
+
 			if ($child->nodeName !== 'entry') {
 				throw new CodecException(sprintf('Expected <entry>, found <%s>', $child->nodeName), $child->getLineNo());
 			}
@@ -333,9 +396,11 @@ final class XmlCodec {
 				throw new CodecException('<entry> requires "key" and "type" attributes', $child->getLineNo());
 			}
 
-			foreach ($child->attributes as $attr) {
-				if (!in_array($attr->nodeName, ['key', 'type'], true)) {
-					throw new CodecException(sprintf('Attribute "%s" is not allowed on <entry>', $attr->nodeName), $child->getLineNo());
+			if ($child->attributes->length !== 2) {
+				foreach ($child->attributes as $attr) {
+					if ($attr->nodeName !== 'key' && $attr->nodeName !== 'type') {
+						throw new CodecException(sprintf('Attribute "%s" is not allowed on <entry>', $attr->nodeName), $child->getLineNo());
+					}
 				}
 			}
 
@@ -349,9 +414,14 @@ final class XmlCodec {
 				throw new CodecException(sprintf('Duplicate key "%s"', $key), $child->getLineNo());
 			}
 
-			$sub                 = $path . '/' . $key;
-			$this->lineMap[$sub] = $child->getLineNo();
-			$map[$key]           = $this->decodeValue($child, $sub);
+			if ($this->fullLineMap || $childDepth <= 3 || ($childDepth === 5 && $key === 'id')) {
+				$sub                 = $path . '/' . $key;
+				$this->lineMap[$sub] = $child->getLineNo();
+			} else {
+				$sub = '';
+			}
+
+			$map[$key] = $this->decodeValue($child, $sub, $childDepth);
 		}
 
 		return $map;
@@ -362,9 +432,10 @@ final class XmlCodec {
 	 *
 	 * @param \DOMElement $element Typed DOM element.
 	 * @param string $path Slash-delimited path for line map tracking.
+	 * @param int $depth Current element nesting depth of $element.
 	 * @return mixed Decoded PHP value.
 	 */
-	private function decodeValue(\DOMElement $element, string $path): mixed {
+	private function decodeValue(\DOMElement $element, string $path, int $depth): mixed {
 		$type = $element->getAttribute('type');
 
 		return match ($type) {
@@ -373,8 +444,8 @@ final class XmlCodec {
 			'int'    => $this->decodeInt($element),
 			'float'  => $this->decodeFloat($element),
 			'string' => $this->decodeLeafText($element),
-			'map'    => $this->decodeMap($element, $path),
-			'list'   => $this->decodeList($element, $path),
+			'map'    => $this->decodeMap($element, $path, $depth),
+			'list'   => $this->decodeList($element, $path, $depth),
 			default  => throw new CodecException(sprintf('Unknown type "%s" on <%s>', $type, $element->nodeName), $element->getLineNo()),
 		};
 	}
@@ -384,12 +455,24 @@ final class XmlCodec {
 	 *
 	 * @param \DOMElement $parent List container DOM element.
 	 * @param string $path Slash-delimited path for line map tracking.
+	 * @param int $depth Current element nesting depth of $parent.
 	 * @return list<mixed>
 	 */
-	private function decodeList(\DOMElement $parent, string $path): array {
-		$list = [];
+	private function decodeList(\DOMElement $parent, string $path, int $depth): array {
+		$list       = [];
+		$childDepth = $depth + 1;
 
-		foreach ($this->childElements($parent) as $child) {
+		foreach ($parent->childNodes as $child) {
+			if (!$child instanceof \DOMElement) {
+				$this->assertValidNonElementChild($child, $parent->nodeName);
+
+				continue;
+			}
+
+			if ($childDepth > $this->maxDepth) {
+				throw new CodecException(sprintf('Nesting is deeper than %d levels', $this->maxDepth), $child->getLineNo());
+			}
+
 			if ($child->nodeName !== 'item') {
 				throw new CodecException(sprintf('Expected <item>, found <%s>', $child->nodeName), $child->getLineNo());
 			}
@@ -398,15 +481,22 @@ final class XmlCodec {
 				throw new CodecException('<item> requires a "type" attribute', $child->getLineNo());
 			}
 
-			foreach ($child->attributes as $attr) {
-				if ($attr->nodeName !== 'type') {
-					throw new CodecException(sprintf('Attribute "%s" is not allowed on <item>', $attr->nodeName), $child->getLineNo());
+			if ($child->attributes->length !== 1) {
+				foreach ($child->attributes as $attr) {
+					if ($attr->nodeName !== 'type') {
+						throw new CodecException(sprintf('Attribute "%s" is not allowed on <item>', $attr->nodeName), $child->getLineNo());
+					}
 				}
 			}
 
-			$sub                 = $path . '/' . count($list);
-			$this->lineMap[$sub] = $child->getLineNo();
-			$list[]              = $this->decodeValue($child, $sub);
+			if ($this->fullLineMap || $childDepth <= 4) {
+				$sub                 = $path . '/' . count($list);
+				$this->lineMap[$sub] = $child->getLineNo();
+			} else {
+				$sub = '';
+			}
+
+			$list[] = $this->decodeValue($child, $sub, $childDepth);
 		}
 
 		return $list;
@@ -503,24 +593,23 @@ final class XmlCodec {
 	}
 
 	/**
-	 * Return direct child DOM elements while rejecting unexpected non-whitespace text nodes.
+	 * Reject unexpected non-whitespace text or non-comment nodes inside container elements.
 	 *
-	 * @param \DOMElement $parent Container DOM element.
-	 * @return list<\DOMElement>
+	 * @param \DOMNode $child Non-element child node.
+	 * @param string $parentName Parent element tag name for diagnostics.
+	 * @return void
 	 */
-	private function childElements(\DOMElement $parent): array {
-		$elements = [];
-
-		foreach ($parent->childNodes as $child) {
-			if ($child instanceof \DOMElement) {
-				$elements[] = $child;
-			} elseif ($child instanceof \DOMText && trim($child->data) !== '') {
-				throw new CodecException(sprintf('Unexpected text inside <%s>', $parent->nodeName), $child->getLineNo());
-			} elseif (!$child instanceof \DOMText && !$child instanceof \DOMComment) {
-				throw new CodecException('Only elements and comments are allowed here', $child->getLineNo());
+	private function assertValidNonElementChild(\DOMNode $child, string $parentName): void {
+		if ($child instanceof \DOMText) {
+			if (trim($child->data) !== '') {
+				throw new CodecException(sprintf('Unexpected text inside <%s>', $parentName), $child->getLineNo());
 			}
+
+			return;
 		}
 
-		return $elements;
+		if (!$child instanceof \DOMComment) {
+			throw new CodecException('Only elements and comments are allowed here', $child->getLineNo());
+		}
 	}
 }

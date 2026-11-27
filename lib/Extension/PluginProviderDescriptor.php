@@ -40,6 +40,28 @@ final class PluginProviderDescriptor {
 		'plugins',
 	];
 
+	private const RESERVED_SLUG_SET = [
+		'cacti'     => true,
+		'casc'      => true,
+		'settings'  => true,
+		'sites'     => true,
+		'pollers'   => true,
+		'templates' => true,
+		'devices'   => true,
+		'trees'     => true,
+		'plugins'   => true,
+	];
+
+	/**
+	 * Check whether a plugin slug is reserved by plugin_casc or Cacti core.
+	 *
+	 * @param string $slug Candidate plugin directory slug.
+	 * @return bool True when the slug is reserved.
+	 */
+	public static function isReservedSlug(string $slug): bool {
+		return isset(self::RESERVED_SLUG_SET[$slug]);
+	}
+
 	/** @var callable(array<string, mixed>): array<string, mixed> */
 	public readonly mixed $export;
 
@@ -80,7 +102,7 @@ final class PluginProviderDescriptor {
 		?callable $describeSchema = null,
 		?array $schema = null,
 	) {
-		if (preg_match(self::SLUG_PATTERN, $slug) !== 1 || in_array($slug, self::RESERVED_SLUGS, true)) {
+		if (preg_match(self::SLUG_PATTERN, $slug) !== 1 || self::isReservedSlug($slug)) {
 			throw new \InvalidArgumentException(sprintf('Invalid or reserved plugin CasC provider slug "%s"', $slug));
 		}
 

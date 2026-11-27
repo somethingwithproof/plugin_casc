@@ -184,6 +184,18 @@ final class SecretPolicy {
 		'path_spine_config',
 	];
 
+	/** @var array<string, true>|null */
+	private static ?array $blockedSet = null;
+
+	/** @var array<string, true>|null */
+	private static ?array $secretSet = null;
+
+	/** @var array<string, true>|null */
+	private static ?array $declarativeSet = null;
+
+	/** @var array<string, true>|null */
+	private static ?array $referencePathSet = null;
+
 	/**
 	 * Determine whether a setting name is hard-blocked from CasC export and apply.
 	 *
@@ -191,13 +203,17 @@ final class SecretPolicy {
 	 * @return bool True when the setting is hard-blocked.
 	 */
 	public static function isBlockedSetting(string $name): bool {
-		if (in_array($name, self::BLOCKED_SETTINGS, true)) {
+		self::$blockedSet ??= array_fill_keys(self::BLOCKED_SETTINGS, true);
+
+		if (isset(self::$blockedSet[$name])) {
 			return true;
 		}
 
-		return str_contains(strtolower($name), 'secret_encryption_key')
-			|| str_contains(strtolower($name), 'csrf_secret')
-			|| str_starts_with(strtolower($name), 'rsa_private');
+		$lower = strtolower($name);
+
+		return str_contains($lower, 'secret_encryption_key')
+			|| str_contains($lower, 'csrf_secret')
+			|| str_starts_with($lower, 'rsa_private');
 	}
 
 	/**
@@ -207,7 +223,9 @@ final class SecretPolicy {
 	 * @return bool True when the setting is a secret key.
 	 */
 	public static function isSecretSetting(string $name): bool {
-		return in_array($name, self::SECRET_SETTINGS, true) || $name === 'snmp_community';
+		self::$secretSet ??= array_fill_keys(self::SECRET_SETTINGS, true) + ['snmp_community' => true];
+
+		return isset(self::$secretSet[$name]);
 	}
 
 	/**
@@ -221,7 +239,9 @@ final class SecretPolicy {
 			return false;
 		}
 
-		return in_array($name, self::DECLARATIVE_SETTINGS, true);
+		self::$declarativeSet ??= array_fill_keys(self::DECLARATIVE_SETTINGS, true);
+
+		return isset(self::$declarativeSet[$name]);
 	}
 
 	/**
@@ -231,7 +251,9 @@ final class SecretPolicy {
 	 * @return bool True when the setting belongs in reference.paths.
 	 */
 	public static function isReferencePathSetting(string $name): bool {
-		return in_array($name, self::REFERENCE_PATH_SETTINGS, true);
+		self::$referencePathSet ??= array_fill_keys(self::REFERENCE_PATH_SETTINGS, true);
+
+		return isset(self::$referencePathSet[$name]);
 	}
 
 	/**

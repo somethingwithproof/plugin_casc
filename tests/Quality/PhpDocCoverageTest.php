@@ -60,7 +60,7 @@ final class PhpDocCoverageTest extends TestCase {
 	private function productionFiles(string $root): array {
 		$files = [];
 
-		foreach (['setup.php', 'casc_admin.php', 'casc_operator.php', 'casc_view.php', 'index.php', 'cli/casc.php', 'include/autoload.php'] as $entry) {
+		foreach (['setup.php', 'casc_admin.php', 'casc_operator.php', 'casc_view.php', 'index.php', 'cli/casc.php', 'include/autoload.php', 'scripts/ss_casc_stats.php'] as $entry) {
 			$path = $root . '/' . $entry;
 
 			if (is_file($path)) {

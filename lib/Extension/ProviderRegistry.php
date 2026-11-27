@@ -37,6 +37,9 @@ final class ProviderRegistry {
 	/** @var array<string, PluginProviderDescriptor> */
 	private array $providers = [];
 
+	/** @var list<PluginProviderDescriptor>|null */
+	private ?array $sortedCache = null;
+
 	/** @var list<array{slug: string, phase: string, reason: string}> */
 	private array $faults = [];
 
@@ -56,6 +59,7 @@ final class ProviderRegistry {
 		}
 
 		$this->providers[$descriptor->slug] = $descriptor;
+		$this->sortedCache                  = null;
 	}
 
 	/**
@@ -65,7 +69,8 @@ final class ProviderRegistry {
 	 * @return void
 	 */
 	public function adopt(self $scratch): void {
-		$this->providers = $scratch->providers;
+		$this->providers   = $scratch->providers;
+		$this->sortedCache = null;
 	}
 
 	/**
@@ -94,10 +99,14 @@ final class ProviderRegistry {
 	 * @return list<PluginProviderDescriptor>
 	 */
 	public function all(): array {
+		if ($this->sortedCache !== null) {
+			return $this->sortedCache;
+		}
+
 		$providers = $this->providers;
 		ksort($providers, SORT_STRING);
 
-		return array_values($providers);
+		return $this->sortedCache = array_values($providers);
 	}
 
 	/**
@@ -124,7 +133,7 @@ final class ProviderRegistry {
 			$file     = $hook['file'];
 			$function = $hook['function'];
 
-			if (preg_match(PluginProviderDescriptor::SLUG_PATTERN, $slug) !== 1 || in_array($slug, PluginProviderDescriptor::RESERVED_SLUGS, true)) {
+			if (preg_match(PluginProviderDescriptor::SLUG_PATTERN, $slug) !== 1 || PluginProviderDescriptor::isReservedSlug($slug)) {
 				$this->recordFault($slug, 'register', 'Invalid or reserved plugin slug');
 
 				continue;
@@ -136,7 +145,9 @@ final class ProviderRegistry {
 				continue;
 			}
 
-			$scratch = clone $this;
+			// Isolate each hook in an empty single-plugin scratch registry so
+			// dispatching P hooks is O(P) instead of cloning O(P) providers per hook.
+			$scratch = new self();
 
 			try {
 				if ($fileResolver !== null) {
@@ -160,7 +171,9 @@ final class ProviderRegistry {
 					$registrar->register($returned);
 				}
 
-				$this->adopt($scratch);
+				foreach ($scratch->providers as $registeredDescriptor) {
+					$this->register($registeredDescriptor);
+				}
 			} catch (\Throwable $error) {
 				$this->recordFault($slug, 'register', $error::class . ': ' . $error->getMessage());
 			}

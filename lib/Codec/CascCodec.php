@@ -83,8 +83,8 @@ final class CascCodec {
 	 */
 	public static function parse(string $format, string $text): CascDocument {
 		$tree = match ($format) {
-			self::YAML => YamlReader::parse($text, self::MAX_BYTES),
-			self::XML  => XmlCodec::parse($text, self::MAX_BYTES),
+			self::YAML => YamlReader::parse($text, self::MAX_BYTES, YamlReader::MAX_DEPTH, false),
+			self::XML  => XmlCodec::parse($text, self::MAX_BYTES, XmlCodec::MAX_DEPTH, false),
 			default    => throw new CodecException(sprintf('Unknown format "%s"; use yaml or xml', $format)),
 		};
 

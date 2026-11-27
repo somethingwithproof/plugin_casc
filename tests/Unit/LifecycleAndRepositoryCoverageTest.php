@@ -353,11 +353,11 @@ final class LifecycleAndRepositoryCoverageTest extends TestCase {
 			}
 
 			if (str_contains($sql, 'FROM host_snmp_query')) {
-				return [['name' => 'Interface Stats']];
+				return [['host_id' => 11, 'name' => 'Interface Stats']];
 			}
 
 			if (str_contains($sql, 'FROM host_graph')) {
-				return [['name' => 'Uptime']];
+				return [['host_id' => 11, 'name' => 'Uptime']];
 			}
 
 			if (str_contains($sql, 'FROM graph_tree ORDER BY')) {
@@ -366,10 +366,10 @@ final class LifecycleAndRepositoryCoverageTest extends TestCase {
 
 			if (str_contains($sql, 'FROM graph_tree_items')) {
 				return [
-					['id' => 10, 'parent' => 0, 'position' => 1, 'title' => 'Edge', 'host_id' => 0, 'site_id' => 0, 'local_graph_id' => 0],
-					['id' => 11, 'parent' => 10, 'position' => 1, 'title' => '', 'host_id' => 1, 'site_id' => 0, 'local_graph_id' => 0, 'host_external_id' => 'edge-1', 'host_hostname' => '10.0.0.1', 'host_description' => 'Edge'],
-					['id' => 12, 'parent' => 10, 'position' => 2, 'title' => '', 'host_id' => 0, 'site_id' => 1, 'local_graph_id' => 0, 'site_name' => 'sjc1'],
-					['id' => 13, 'parent' => 10, 'position' => 3, 'title' => '', 'host_id' => 0, 'site_id' => 0, 'local_graph_id' => 5],
+					['graph_tree_id' => 7, 'id' => 10, 'parent' => 0, 'position' => 1, 'title' => 'Edge', 'host_id' => 0, 'site_id' => 0, 'local_graph_id' => 0],
+					['graph_tree_id' => 7, 'id' => 11, 'parent' => 10, 'position' => 1, 'title' => '', 'host_id' => 1, 'site_id' => 0, 'local_graph_id' => 0, 'host_external_id' => 'edge-1', 'host_hostname' => '10.0.0.1', 'host_description' => 'Edge'],
+					['graph_tree_id' => 7, 'id' => 12, 'parent' => 10, 'position' => 2, 'title' => '', 'host_id' => 0, 'site_id' => 1, 'local_graph_id' => 0, 'site_name' => 'sjc1'],
+					['graph_tree_id' => 7, 'id' => 13, 'parent' => 10, 'position' => 3, 'title' => '', 'host_id' => 0, 'site_id' => 0, 'local_graph_id' => 5],
 				];
 			}
 
@@ -379,6 +379,10 @@ final class LifecycleAndRepositoryCoverageTest extends TestCase {
 
 			if (str_contains($sql, 'FROM plugin_casc_audit')) {
 				return [['id' => 1, 'actor' => 'admin', 'status' => 'succeeded']];
+			}
+
+			if (str_contains($sql, 'FROM plugin_casc_plan')) {
+				return [['plan_hash' => str_repeat('b', 64), 'created_at' => 1700000000, 'actor' => 'admin', 'manifest_sha256' => str_repeat('c', 64), 'action_count' => 3]];
 			}
 
 			return [];
@@ -480,6 +484,9 @@ final class LifecycleAndRepositoryCoverageTest extends TestCase {
 		$this->assertSame(42, $repo->recordAudit(['actor' => 'admin', 'plan_hash' => str_repeat('a', 64)]));
 		$this->assertCount(1, $repo->getRecentAudits(10));
 		$repo->recordPlan(str_repeat('b', 64), 'admin', str_repeat('c', 64), 3, time());
+		$latestPlan = $repo->getLatestPlan();
+		$this->assertNotNull($latestPlan);
+		$this->assertSame(3, $latestPlan['action_count']);
 
 		// Deleting primary poller id=1 must throw.
 		$this->expectException(\RuntimeException::class);

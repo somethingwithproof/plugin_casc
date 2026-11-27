@@ -556,6 +556,31 @@ final class InMemoryStateRepository implements StateRepository {
 	}
 
 	/**
+	 * Return the most recently persisted plan summary, if any exists.
+	 *
+	 * @return array{plan_hash: string, created_at: int, actor: string, manifest_sha256: string, action_count: int}|null
+	 */
+	public function getLatestPlan(): ?array {
+		$latest = null;
+
+		foreach ($this->plans as $plan) {
+			$createdAt = is_numeric($plan['created_at'] ?? null) ? (int) $plan['created_at'] : 0;
+
+			if ($latest === null || $createdAt >= $latest['created_at']) {
+				$latest = [
+					'plan_hash'       => is_scalar($plan['plan_hash'] ?? null) ? (string) $plan['plan_hash'] : '',
+					'created_at'      => $createdAt,
+					'actor'           => is_scalar($plan['actor'] ?? null) ? (string) $plan['actor'] : '',
+					'manifest_sha256' => is_scalar($plan['manifest_sha256'] ?? null) ? (string) $plan['manifest_sha256'] : '',
+					'action_count'    => is_numeric($plan['action_count'] ?? null) ? (int) $plan['action_count'] : 0,
+				];
+			}
+		}
+
+		return $latest;
+	}
+
+	/**
 	 * Throw a simulated RuntimeException when $failOnOperation matches $op.
 	 *
 	 * @param string $op Repository operation name.

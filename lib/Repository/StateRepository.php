@@ -275,4 +275,11 @@ interface StateRepository {
 	 * @return void
 	 */
 	public function recordPlan(string $planHash, string $actor, string $manifestSha256, int $actionCount, int $timestamp): void;
+
+	/**
+	 * Fetch the most recently persisted plan summary, if any exists.
+	 *
+	 * @return array{plan_hash: string, created_at: int, actor: string, manifest_sha256: string, action_count: int}|null
+	 */
+	public function getLatestPlan(): ?array;
 }

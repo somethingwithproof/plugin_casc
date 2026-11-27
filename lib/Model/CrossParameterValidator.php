@@ -34,7 +34,11 @@ use Somethingwithproof\Casc\Repository\StateRepository;
  * and plan phases before any mutation is planned or applied.
  */
 final class CrossParameterValidator {
-	private const NONE_PROTOCOLS = ['', 'none', '[none]'];
+	private const NONE_PROTOCOLS = [
+		''       => true,
+		'none'   => true,
+		'[none]' => true,
+	];
 
 	/**
 	 * Validate cross-parameter invariants and return flat diagnostic messages.
@@ -64,33 +68,16 @@ final class CrossParameterValidator {
 		$manifestPollers = self::collectUniqueNamedKeys($document->spec['pollers'] ?? null, 'pollers', $violations);
 		self::collectUniqueNamedKeys($document->spec['trees'] ?? null, 'trees', $violations);
 
-		$knownSites      = $manifestSites;
-		$knownPollers    = $manifestPollers;
-		$existingDevices = [];
+		$devices = $document->spec['devices'] ?? null;
 
-		if ($repo !== null) {
-			foreach ($repo->getSites() as $site) {
-				$name = is_scalar($site['name'] ?? null) ? trim((string) $site['name']) : '';
-
-				if ($name !== '') {
-					$knownSites[$name] = true;
-				}
-			}
-
-			foreach ($repo->getPollers() as $poller) {
-				$name = is_scalar($poller['name'] ?? null) ? trim((string) $poller['name']) : '';
-
-				if ($name !== '') {
-					$knownPollers[$name] = true;
-				}
-			}
-
-			foreach ($repo->getDevices() as $device) {
-				$existingDevices[DevicesProvider::naturalKeyFromRow($device)] = $device;
-			}
+		if (!is_array($devices) || $devices === [] || !array_is_list($devices)) {
+			return $violations;
 		}
 
-		self::validateDevices($document->spec['devices'] ?? null, $knownSites, $knownPollers, $existingDevices, $violations);
+		$knownSites   = $manifestSites;
+		$knownPollers = $manifestPollers;
+
+		self::validateDevices($devices, $knownSites, $knownPollers, $repo, $violations);
 
 		return $violations;
 	}
@@ -144,9 +131,9 @@ final class CrossParameterValidator {
 	 * and SNMP version/protocol/credential coupling invariants.
 	 *
 	 * @param mixed $devices Candidate devices list from spec.devices.
-	 * @param array<string, true> $knownSites Set of valid site names (manifest + live repo).
-	 * @param array<string, true> $knownPollers Set of valid poller names (manifest + live repo).
-	 * @param array<string, array<string, mixed>> $existingDevices Existing live devices keyed by natural key.
+	 * @param array<string, true> $knownSites Set of valid site names (loaded lazily from $repo when needed).
+	 * @param array<string, true> $knownPollers Set of valid poller names (loaded lazily from $repo when needed).
+	 * @param StateRepository|null $repo Optional live repository for lazy lookups.
 	 * @param list<array{domain: string, key: string, message: string}> $violations Accumulator for violations.
 	 * @return void
 	 */
@@ -154,15 +141,19 @@ final class CrossParameterValidator {
 		mixed $devices,
 		array $knownSites,
 		array $knownPollers,
-		array $existingDevices,
+		?StateRepository $repo,
 		array &$violations,
 	): void {
 		if (!is_array($devices) || ($devices !== [] && !array_is_list($devices))) {
 			return;
 		}
 
-		$seenKeys      = [];
-		$seenHostDescs = [];
+		$sitesLoaded     = false;
+		$pollersLoaded   = false;
+		/** @var array<string, array<string, mixed>>|null $existingDevices */
+		$existingDevices = null;
+		$seenKeys        = [];
+		$seenHostDescs   = [];
 
 		foreach ($devices as $idx => $entry) {
 			if (!is_array($entry)) {
@@ -200,32 +191,59 @@ final class CrossParameterValidator {
 				}
 			}
 
-			if (isset($entry['site']) && is_string($entry['site']) && trim($entry['site']) !== '') {
+			if (isset($entry['site']) && is_string($entry['site'])) {
 				$siteName = trim($entry['site']);
 
-				if (!isset($knownSites[$siteName])) {
-					$violations[] = [
-						'domain'  => 'devices',
-						'key'     => $label,
-						'message' => sprintf('Device "%s" references unknown site "%s"', $label, $siteName),
-					];
+				if ($siteName !== '' && !isset($knownSites[$siteName])) {
+					if (!$sitesLoaded && $repo !== null) {
+						$sitesLoaded = true;
+
+						foreach ($repo->getSites() as $site) {
+							$sName = is_scalar($site['name'] ?? null) ? trim((string) $site['name']) : '';
+
+							if ($sName !== '') {
+								$knownSites[$sName] = true;
+							}
+						}
+					}
+
+					if (!isset($knownSites[$siteName])) {
+						$violations[] = [
+							'domain'  => 'devices',
+							'key'     => $label,
+							'message' => sprintf('Device "%s" references unknown site "%s"', $label, $siteName),
+						];
+					}
 				}
 			}
 
-			if (isset($entry['poller']) && is_string($entry['poller']) && trim($entry['poller']) !== '') {
+			if (isset($entry['poller']) && is_string($entry['poller'])) {
 				$pollerName = trim($entry['poller']);
 
-				if (!isset($knownPollers[$pollerName])) {
-					$violations[] = [
-						'domain'  => 'devices',
-						'key'     => $label,
-						'message' => sprintf('Device "%s" references unknown poller "%s"', $label, $pollerName),
-					];
+				if ($pollerName !== '' && !isset($knownPollers[$pollerName])) {
+					if (!$pollersLoaded && $repo !== null) {
+						$pollersLoaded = true;
+
+						foreach ($repo->getPollers() as $poller) {
+							$pName = is_scalar($poller['name'] ?? null) ? trim((string) $poller['name']) : '';
+
+							if ($pName !== '') {
+								$knownPollers[$pName] = true;
+							}
+						}
+					}
+
+					if (!isset($knownPollers[$pollerName])) {
+						$violations[] = [
+							'domain'  => 'devices',
+							'key'     => $label,
+							'message' => sprintf('Device "%s" references unknown poller "%s"', $label, $pollerName),
+						];
+					}
 				}
 			}
 
-			$existing = $key !== '' ? ($existingDevices[$key] ?? null) : null;
-			self::validateDeviceSnmp($entry, $label, $existing, $violations);
+			self::validateDeviceSnmp($entry, $key, $label, $repo, $existingDevices, $violations);
 		}
 	}
 
@@ -233,15 +251,19 @@ final class CrossParameterValidator {
 	 * Enforce SNMP version, protocol, and credential cross-parameter invariants for a device.
 	 *
 	 * @param array<array-key, mixed> $entry Device manifest entry.
+	 * @param string $key Device natural key.
 	 * @param string $label Device natural key or index label for diagnostics.
-	 * @param array<string, mixed>|null $existing Existing live device row when available.
+	 * @param StateRepository|null $repo Optional live repository for lazy existing-device lookup.
+	 * @param array<string, array<string, mixed>>|null $existingDevices Lazily indexed live devices map.
 	 * @param list<array{domain: string, key: string, message: string}> $violations Accumulator for violations.
 	 * @return void
 	 */
 	private static function validateDeviceSnmp(
 		array $entry,
+		string $key,
 		string $label,
-		?array $existing,
+		?StateRepository $repo,
+		?array &$existingDevices,
 		array &$violations,
 	): void {
 		$hasVersion = array_key_exists('snmpVersion', $entry);
@@ -259,7 +281,7 @@ final class CrossParameterValidator {
 
 		$version = $hasVersion && is_numeric($rawVersion) ? (int) $rawVersion : null;
 
-		if ($version !== null && !in_array($version, [0, 1, 2, 3], true)) {
+		if ($version !== null && ($version < 0 || $version > 3)) {
 			$violations[] = [
 				'domain'  => 'devices',
 				'key'     => $label,
@@ -278,8 +300,8 @@ final class CrossParameterValidator {
 		$context        = self::trimmedString($entry['snmpContext'] ?? null);
 		$engineId       = self::trimmedString($entry['snmpEngineId'] ?? null);
 
-		$hasActiveAuth = !in_array(strtolower($authProtocol), self::NONE_PROTOCOLS, true);
-		$hasActivePriv = !in_array(strtolower($privProtocol), self::NONE_PROTOCOLS, true);
+		$hasActiveAuth = !isset(self::NONE_PROTOCOLS[strtolower($authProtocol)]);
+		$hasActivePriv = !isset(self::NONE_PROTOCOLS[strtolower($privProtocol)]);
 
 		if ($version === 3) {
 			if ($username === '') {
@@ -298,15 +320,17 @@ final class CrossParameterValidator {
 				];
 			}
 
-			$existingHasPass = $existing !== null && self::trimmedString($existing['snmp_password'] ?? null) !== '';
-			$existingHasPriv = $existing !== null && self::trimmedString($existing['snmp_priv_passphrase'] ?? null) !== '';
+			if ($hasActiveAuth && $password === '') {
+				$existing        = self::lookupExistingDevice($key, $repo, $existingDevices);
+				$existingHasPass = $existing !== null && self::trimmedString($existing['snmp_password'] ?? null) !== '';
 
-			if ($hasActiveAuth && $password === '' && (array_key_exists('snmpPassword', $entry) || !$existingHasPass)) {
-				$violations[] = [
-					'domain'  => 'devices',
-					'key'     => $label,
-					'message' => sprintf('Device "%s" sets snmpAuthProtocol "%s" and requires snmpPassword', $label, $authProtocol),
-				];
+				if (array_key_exists('snmpPassword', $entry) || !$existingHasPass) {
+					$violations[] = [
+						'domain'  => 'devices',
+						'key'     => $label,
+						'message' => sprintf('Device "%s" sets snmpAuthProtocol "%s" and requires snmpPassword', $label, $authProtocol),
+					];
+				}
 			}
 
 			if ($hasActivePriv) {
@@ -318,12 +342,17 @@ final class CrossParameterValidator {
 					];
 				}
 
-				if ($privPassphrase === '' && (array_key_exists('snmpPrivPassphrase', $entry) || !$existingHasPriv)) {
-					$violations[] = [
-						'domain'  => 'devices',
-						'key'     => $label,
-						'message' => sprintf('Device "%s" sets snmpPrivProtocol "%s" and requires snmpPrivPassphrase', $label, $privProtocol),
-					];
+				if ($privPassphrase === '') {
+					$existing        = self::lookupExistingDevice($key, $repo, $existingDevices);
+					$existingHasPriv = $existing !== null && self::trimmedString($existing['snmp_priv_passphrase'] ?? null) !== '';
+
+					if (array_key_exists('snmpPrivPassphrase', $entry) || !$existingHasPriv) {
+						$violations[] = [
+							'domain'  => 'devices',
+							'key'     => $label,
+							'message' => sprintf('Device "%s" sets snmpPrivProtocol "%s" and requires snmpPrivPassphrase', $label, $privProtocol),
+						];
+					}
 				}
 			} elseif ($privPassphrase !== '') {
 				$violations[] = [
@@ -337,36 +366,71 @@ final class CrossParameterValidator {
 		}
 
 		if ($version === 1 || $version === 2) {
-			$existingHasCommunity = $existing !== null && self::trimmedString($existing['snmp_community'] ?? null) !== '';
+			if ($community === '') {
+				$existing             = self::lookupExistingDevice($key, $repo, $existingDevices);
+				$existingHasCommunity = $existing !== null && self::trimmedString($existing['snmp_community'] ?? null) !== '';
 
-			if ($community === '' && (array_key_exists('snmpCommunity', $entry) || !$existingHasCommunity)) {
-				$violations[] = [
-					'domain'  => 'devices',
-					'key'     => $label,
-					'message' => sprintf('Device "%s" with snmpVersion %d requires non-empty snmpCommunity', $label, $version),
-				];
-			}
-
-			$v3Fields = [
-				'snmpUsername'       => $username !== '',
-				'snmpPassword'       => $password !== '',
-				'snmpAuthProtocol'   => $hasActiveAuth,
-				'snmpPrivProtocol'   => $hasActivePriv,
-				'snmpPrivPassphrase' => $privPassphrase !== '',
-				'snmpContext'        => $context !== '',
-				'snmpEngineId'       => $engineId !== '',
-			];
-
-			foreach ($v3Fields as $field => $isSet) {
-				if ($isSet) {
+				if (array_key_exists('snmpCommunity', $entry) || !$existingHasCommunity) {
 					$violations[] = [
 						'domain'  => 'devices',
 						'key'     => $label,
-						'message' => sprintf('Device "%s" with snmpVersion %d must not set SNMPv3-only field "%s"', $label, $version, $field),
+						'message' => sprintf('Device "%s" with snmpVersion %d requires non-empty snmpCommunity', $label, $version),
 					];
 				}
 			}
+
+			if ($username !== '') {
+				$violations[] = ['domain' => 'devices', 'key' => $label, 'message' => sprintf('Device "%s" with snmpVersion %d must not set SNMPv3-only field "snmpUsername"', $label, $version)];
+			}
+
+			if ($password !== '') {
+				$violations[] = ['domain' => 'devices', 'key' => $label, 'message' => sprintf('Device "%s" with snmpVersion %d must not set SNMPv3-only field "snmpPassword"', $label, $version)];
+			}
+
+			if ($hasActiveAuth) {
+				$violations[] = ['domain' => 'devices', 'key' => $label, 'message' => sprintf('Device "%s" with snmpVersion %d must not set SNMPv3-only field "snmpAuthProtocol"', $label, $version)];
+			}
+
+			if ($hasActivePriv) {
+				$violations[] = ['domain' => 'devices', 'key' => $label, 'message' => sprintf('Device "%s" with snmpVersion %d must not set SNMPv3-only field "snmpPrivProtocol"', $label, $version)];
+			}
+
+			if ($privPassphrase !== '') {
+				$violations[] = ['domain' => 'devices', 'key' => $label, 'message' => sprintf('Device "%s" with snmpVersion %d must not set SNMPv3-only field "snmpPrivPassphrase"', $label, $version)];
+			}
+
+			if ($context !== '') {
+				$violations[] = ['domain' => 'devices', 'key' => $label, 'message' => sprintf('Device "%s" with snmpVersion %d must not set SNMPv3-only field "snmpContext"', $label, $version)];
+			}
+
+			if ($engineId !== '') {
+				$violations[] = ['domain' => 'devices', 'key' => $label, 'message' => sprintf('Device "%s" with snmpVersion %d must not set SNMPv3-only field "snmpEngineId"', $label, $version)];
+			}
 		}
+	}
+
+	/**
+	 * Lazily index live devices from $repo only when a partial device manifest omits a credential.
+	 *
+	 * @param string $key Device natural key.
+	 * @param StateRepository|null $repo Optional live repository.
+	 * @param array<string, array<string, mixed>>|null $existingDevices Lazy device index cache.
+	 * @return array<string, mixed>|null Existing live device row or null.
+	 */
+	private static function lookupExistingDevice(string $key, ?StateRepository $repo, ?array &$existingDevices): ?array {
+		if ($key === '' || $repo === null) {
+			return null;
+		}
+
+		if ($existingDevices === null) {
+			$existingDevices = [];
+
+			foreach ($repo->getDevices() as $device) {
+				$existingDevices[DevicesProvider::naturalKeyFromRow($device)] = $device;
+			}
+		}
+
+		return $existingDevices[$key] ?? null;
 	}
 
 	/**

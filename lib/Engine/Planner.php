@@ -24,6 +24,7 @@ namespace Somethingwithproof\Casc\Engine;
 use Somethingwithproof\Casc\Model\CascDocument;
 use Somethingwithproof\Casc\Model\CrossParameterValidator;
 use Somethingwithproof\Casc\Provider\ResourceProvider;
+use Somethingwithproof\Casc\Repository\ReadCachedStateRepository;
 use Somethingwithproof\Casc\Repository\StateRepository;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
@@ -120,17 +121,18 @@ final class Planner {
 	 * @return Plan Deterministic plan with canonical SHA-256 planHash.
 	 */
 	public function plan(StateRepository $repo, CascDocument $document, SecretResolver $secrets, array $options = []): Plan {
-		$actions = [];
+		$actions      = [];
+		$snapshotRepo = $repo instanceof ReadCachedStateRepository ? $repo : new ReadCachedStateRepository($repo);
 
-		// Collect site and poller natural keys declared in this manifest so
-		// devices referencing newly created sites/pollers plan cleanly.
+		// Collect site and poller natural keys declared in this manifest as O(1)
+		// hash sets so devices referencing newly created sites/pollers plan cleanly.
 		$plannedSites   = [];
 		$plannedPollers = [];
 
 		if (isset($document->spec['sites']) && is_array($document->spec['sites'])) {
 			foreach ($document->spec['sites'] as $s) {
 				if (is_array($s) && is_string($s['name'] ?? null) && trim($s['name']) !== '') {
-					$plannedSites[] = trim($s['name']);
+					$plannedSites[trim($s['name'])] = true;
 				}
 			}
 		}
@@ -138,7 +140,7 @@ final class Planner {
 		if (isset($document->spec['pollers']) && is_array($document->spec['pollers'])) {
 			foreach ($document->spec['pollers'] as $p) {
 				if (is_array($p) && is_string($p['name'] ?? null) && trim($p['name']) !== '') {
-					$plannedPollers[] = trim($p['name']);
+					$plannedPollers[trim($p['name'])] = true;
 				}
 			}
 		}
@@ -157,7 +159,7 @@ final class Planner {
 
 			$provider = $this->providers[$domain];
 
-			foreach ($provider->plan($repo, $document->spec[$domain], $secrets, $providerOptions) as $action) {
+			foreach ($provider->plan($snapshotRepo, $document->spec[$domain], $secrets, $providerOptions) as $action) {
 				if ($action->operation === PlanAction::ERROR) {
 					$seenErrors[$action->summary] = true;
 				}
@@ -166,7 +168,7 @@ final class Planner {
 			}
 		}
 
-		foreach (CrossParameterValidator::validateDetailed($document, $repo) as $violation) {
+		foreach (CrossParameterValidator::validateDetailed($document, $snapshotRepo) as $violation) {
 			if (isset($seenErrors[$violation['message']])) {
 				continue;
 			}
@@ -182,7 +184,7 @@ final class Planner {
 
 		// Report reference.paths differences as non-mutating warnings.
 		if (isset($document->reference['paths']) && is_array($document->reference['paths'])) {
-			$currentSettings = $repo->getSettings();
+			$currentSettings = $snapshotRepo->getSettings();
 
 			foreach ($document->reference['paths'] as $pathKey => $refVal) {
 				$key = (string) $pathKey;
@@ -202,6 +204,7 @@ final class Planner {
 
 		$manifestCanonical = json_encode($document->toCanonicalArray(), JSON_THROW_ON_ERROR);
 		$manifestSha256    = hash('sha256', $manifestCanonical);
+		unset($manifestCanonical);
 
 		$prune = [];
 

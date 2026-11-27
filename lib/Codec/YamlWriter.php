@@ -52,7 +52,7 @@ final class YamlWriter {
 
 		$out = [];
 
-		self::collection($data, 0, 1, $maxDepth, $sortKeys, $out, false);
+		self::collection($data, 0, 1, $maxDepth, $sortKeys, $out, null);
 
 		return implode("\n", $out) . "\n";
 	}
@@ -66,33 +66,31 @@ final class YamlWriter {
 	 * @param int $maxDepth Maximum permitted nesting depth.
 	 * @param bool $sortKeys Whether to sort map keys lexicographically.
 	 * @param list<string> $out Output line accumulator.
-	 * @param bool $firstInline Whether the first emitted line follows "- " inline.
+	 * @param string|null $firstPrefix Optional prefix replacing indentation on the first emitted line (e.g. "- ").
 	 * @return void
 	 */
-	private static function collection(array $data, int $indent, int $depth, int $maxDepth, bool $sortKeys, array &$out, bool $firstInline): void {
+	private static function collection(array $data, int $indent, int $depth, int $maxDepth, bool $sortKeys, array &$out, ?string $firstPrefix): void {
 		if ($depth > $maxDepth) {
 			throw new CodecException(sprintf('Nesting is deeper than %d levels', $maxDepth));
 		}
 
-		$pad   = str_repeat(' ', $indent);
-		$first = $firstInline;
+		$pad = str_repeat(' ', $indent);
 
 		if (array_is_list($data)) {
 			foreach ($data as $item) {
-				$prefix = $first ? '' : $pad;
-				$first  = false;
+				if ($firstPrefix !== null) {
+					$prefix      = $firstPrefix;
+					$firstPrefix = null;
+				} else {
+					$prefix = $pad;
+				}
 
 				if (is_array($item)) {
 					if ($item === [] || array_is_list($item)) {
 						throw new CodecException('A list item must be a scalar or a non-empty map');
 					}
 
-					$block = [];
-
-					self::collection($item, $indent + 2, $depth + 1, $maxDepth, $sortKeys, $block, true);
-					$block[0] = $prefix . '- ' . $block[0];
-
-					array_push($out, ...$block);
+					self::collection($item, $indent + 2, $depth + 1, $maxDepth, $sortKeys, $out, $prefix . '- ');
 
 					continue;
 				}
@@ -108,9 +106,14 @@ final class YamlWriter {
 		}
 
 		foreach ($data as $key => $value) {
-			$prefix = $first ? '' : $pad;
-			$first  = false;
-			$name   = self::scalar((string) $key);
+			if ($firstPrefix !== null) {
+				$prefix      = $firstPrefix;
+				$firstPrefix = null;
+			} else {
+				$prefix = $pad;
+			}
+
+			$name = self::scalar((string) $key);
 
 			if (is_array($value)) {
 				if ($value === []) {
@@ -119,7 +122,7 @@ final class YamlWriter {
 
 				$out[] = $prefix . $name . ':';
 
-				self::collection($value, $indent + 2, $depth + 1, $maxDepth, $sortKeys, $out, false);
+				self::collection($value, $indent + 2, $depth + 1, $maxDepth, $sortKeys, $out, null);
 
 				continue;
 			}
@@ -169,6 +172,14 @@ final class YamlWriter {
 			throw new CodecException('Unsupported value type ' . get_debug_type($value));
 		}
 
+		if (YamlScalar::isPrintableAscii($value)) {
+			if (YamlScalar::plainSafe($value)) {
+				return $value;
+			}
+
+			return "'" . str_replace("'", "''", $value) . "'";
+		}
+
 		if (preg_match('//u', $value) !== 1) {
 			throw new CodecException('A string value is not valid UTF-8');
 		}
@@ -191,28 +202,30 @@ final class YamlWriter {
 	 * @return string Escaped double-quoted YAML scalar.
 	 */
 	private static function doubleQuoted(string $value): string {
-		$out = '';
+		$escaped = preg_replace_callback(
+			'/["\\\\\x00-\x1F\x7F\x{80}-\x{9F}\x{2028}\x{2029}\x{FEFF}\x{FFFE}\x{FFFF}]/u',
+			static function (array $match): string {
+				$char = $match[0];
+				$cp   = self::codePoint($char);
 
-		foreach (preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $char) {
-			$cp = self::codePoint($char);
+				return match (true) {
+					$char === '"'  => '\\"',
+					$char === '\\' => '\\\\',
+					$char === "\n" => '\\n',
+					$char === "\t" => '\\t',
+					$char === "\r" => '\\r',
+					$cp === 0x2028 => '\\u2028',
+					$cp === 0x2029 => '\\u2029',
+					$cp === 0xFEFF => '\\uFEFF',
+					$cp === 0xFFFE => '\\uFFFE',
+					$cp === 0xFFFF => '\\uFFFF',
+					default        => sprintf('\\u%04X', $cp),
+				};
+			},
+			$value
+		);
 
-			$out .= match (true) {
-				$char === '"'  => '\\"',
-				$char === '\\' => '\\\\',
-				$char === "\n" => '\\n',
-				$char === "\t" => '\\t',
-				$char === "\r" => '\\r',
-				$cp < 0x20 || $cp === 0x7F || ($cp >= 0x80 && $cp <= 0x9F) => sprintf('\\u%04X', $cp),
-				$cp === 0x2028 => '\\u2028',
-				$cp === 0x2029 => '\\u2029',
-				$cp === 0xFEFF => '\\uFEFF',
-				$cp === 0xFFFE => '\\uFFFE',
-				$cp === 0xFFFF => '\\uFFFF',
-				default        => $char,
-			};
-		}
-
-		return '"' . $out . '"';
+		return '"' . ($escaped ?? $value) . '"';
 	}
 
 	/**

@@ -488,7 +488,8 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
-	 * Fetch all non-deleted devices with associated data query and graph template names.
+	 * Fetch all non-deleted devices with associated data query and graph template names
+	 * in O(1) SQL round-trips (3 bulk queries instead of 2N+1 per-host queries).
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -502,25 +503,31 @@ final class CactiStateRepository implements StateRepository {
 
 		$devices = $this->normalizeRowList($rows);
 
+		if ($devices === []) {
+			return [];
+		}
+
+		$dqRows = db_fetch_assoc_prepared(
+			'SELECT hsq.host_id, sq.name FROM host_snmp_query AS hsq INNER JOIN snmp_query AS sq ON sq.id = hsq.snmp_query_id ORDER BY hsq.host_id, sq.name',
+			[],
+			true,
+			$this->connection
+		);
+
+		$gtRows = db_fetch_assoc_prepared(
+			'SELECT hg.host_id, gt.name FROM host_graph AS hg INNER JOIN graph_templates AS gt ON gt.id = hg.graph_template_id ORDER BY hg.host_id, gt.name',
+			[],
+			true,
+			$this->connection
+		);
+
+		$dqByHost = $this->groupColumnByIntKey($dqRows, 'host_id', 'name');
+		$gtByHost = $this->groupColumnByIntKey($gtRows, 'host_id', 'name');
+
 		foreach ($devices as $index => $device) {
-			$hostId = $this->int($device, 'id', 0);
-
-			$dqRows = db_fetch_assoc_prepared(
-				'SELECT sq.name FROM host_snmp_query AS hsq INNER JOIN snmp_query AS sq ON sq.id = hsq.snmp_query_id WHERE hsq.host_id = ? ORDER BY sq.name',
-				[$hostId],
-				true,
-				$this->connection
-			);
-
-			$gtRows = db_fetch_assoc_prepared(
-				'SELECT gt.name FROM host_graph AS hg INNER JOIN graph_templates AS gt ON gt.id = hg.graph_template_id WHERE hg.host_id = ? ORDER BY gt.name',
-				[$hostId],
-				true,
-				$this->connection
-			);
-
-			$devices[$index]['data_queries']    = $this->columnStrings($dqRows, 'name');
-			$devices[$index]['graph_templates'] = $this->columnStrings($gtRows, 'name');
+			$hostId                            = $this->int($device, 'id', 0);
+			$devices[$index]['data_queries']    = $dqByHost[$hostId] ?? [];
+			$devices[$index]['graph_templates'] = $gtByHost[$hostId] ?? [];
 		}
 
 		return $devices;
@@ -601,7 +608,8 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
-	 * Fetch all graph trees and reconstruct their nested item hierarchies.
+	 * Fetch all graph trees and reconstruct their nested item hierarchies in
+	 * O(1) SQL round-trips (2 bulk queries instead of T+1 per-tree queries).
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -615,9 +623,29 @@ final class CactiStateRepository implements StateRepository {
 
 		$trees = $this->normalizeRowList($rows);
 
+		if ($trees === []) {
+			return [];
+		}
+
+		$itemRows = db_fetch_assoc_prepared(
+			'SELECT gti.graph_tree_id, gti.id, gti.parent, gti.position, gti.title, gti.host_id, gti.site_id, gti.local_graph_id, h.external_id AS host_external_id, h.hostname AS host_hostname, h.description AS host_description, s.name AS site_name FROM graph_tree_items AS gti LEFT JOIN host AS h ON h.id = gti.host_id LEFT JOIN sites AS s ON s.id = gti.site_id ORDER BY gti.graph_tree_id, gti.parent, gti.position, gti.id',
+			[],
+			true,
+			$this->connection
+		);
+
+		/** @var array<int, array<int, list<array<string, mixed>>>> $byTreeParent */
+		$byTreeParent = [];
+
+		foreach ($this->normalizeRowList($itemRows) as $row) {
+			$treeId                            = $this->int($row, 'graph_tree_id', 0);
+			$parent                            = $this->int($row, 'parent', 0);
+			$byTreeParent[$treeId][$parent][] = $row;
+		}
+
 		foreach ($trees as $idx => $tree) {
-			$treeId                 = $this->int($tree, 'id', 0);
-			$trees[$idx]['items'] = $this->loadTreeItems($treeId);
+			$treeId               = $this->int($tree, 'id', 0);
+			$trees[$idx]['items'] = isset($byTreeParent[$treeId]) ? $this->buildTreeBranch($byTreeParent[$treeId], 0) : [];
 		}
 
 		return $trees;
@@ -806,6 +834,36 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
+	 * Fetch the most recently persisted plan summary from plugin_casc_plan.
+	 *
+	 * @return array{plan_hash: string, created_at: int, actor: string, manifest_sha256: string, action_count: int}|null
+	 */
+	public function getLatestPlan(): ?array {
+		$rows = db_fetch_assoc_prepared(
+			'SELECT plan_hash, created_at, actor, manifest_sha256, action_count FROM plugin_casc_plan ORDER BY created_at DESC LIMIT 1',
+			[],
+			true,
+			$this->connection
+		);
+
+		$normalized = $this->normalizeRowList($rows);
+
+		if ($normalized === []) {
+			return null;
+		}
+
+		$row = $normalized[0];
+
+		return [
+			'plan_hash'       => $this->str($row, 'plan_hash'),
+			'created_at'      => $this->int($row, 'created_at', 0),
+			'actor'           => $this->str($row, 'actor'),
+			'manifest_sha256' => $this->str($row, 'manifest_sha256'),
+			'action_count'    => $this->int($row, 'action_count', 0),
+		];
+	}
+
+	/**
 	 * Resolve a data source profile name to its numeric ID, falling back to the default profile.
 	 *
 	 * @param string $profileName Data source profile name.
@@ -847,7 +905,7 @@ final class CactiStateRepository implements StateRepository {
 	 * @return void
 	 */
 	private function syncDeviceAssociations(int $hostId, array $device): void {
-		if (isset($device['data_queries']) && is_array($device['data_queries'])) {
+		if (isset($device['data_queries']) && is_array($device['data_queries']) && $device['data_queries'] !== []) {
 			$dqMap = [];
 
 			foreach ($this->getDataQueries() as $dq) {
@@ -866,7 +924,7 @@ final class CactiStateRepository implements StateRepository {
 			}
 		}
 
-		if (isset($device['graph_templates']) && is_array($device['graph_templates'])) {
+		if (isset($device['graph_templates']) && is_array($device['graph_templates']) && $device['graph_templates'] !== []) {
 			$gtMap = [];
 
 			foreach ($this->getGraphTemplates() as $gt) {
@@ -887,27 +945,25 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
-	 * Load all graph_tree_items for a tree and build the root branch hierarchy.
+	 * Group string values from a column by an integer key column across fetched rows.
 	 *
-	 * @param int $treeId Graph tree ID.
-	 * @return list<array<string, mixed>>
+	 * @param mixed $rows Raw result from db_fetch_assoc_prepared().
+	 * @param string $keyCol Integer foreign-key column name.
+	 * @param string $valCol String value column name.
+	 * @return array<int, list<string>>
 	 */
-	private function loadTreeItems(int $treeId): array {
-		$rows = db_fetch_assoc_prepared(
-			'SELECT gti.id, gti.parent, gti.position, gti.title, gti.host_id, gti.site_id, gti.local_graph_id, h.external_id AS host_external_id, h.hostname AS host_hostname, h.description AS host_description, s.name AS site_name FROM graph_tree_items AS gti LEFT JOIN host AS h ON h.id = gti.host_id LEFT JOIN sites AS s ON s.id = gti.site_id WHERE gti.graph_tree_id = ? ORDER BY gti.parent, gti.position, gti.id',
-			[$treeId],
-			true,
-			$this->connection
-		);
-
-		$byParent = [];
+	private function groupColumnByIntKey(mixed $rows, string $keyCol, string $valCol): array {
+		$grouped = [];
 
 		foreach ($this->normalizeRowList($rows) as $row) {
-			$parent               = $this->int($row, 'parent', 0);
-			$byParent[$parent][]  = $row;
+			$id = $this->int($row, $keyCol, 0);
+
+			if ($id > 0 && is_scalar($row[$valCol] ?? null)) {
+				$grouped[$id][] = (string) $row[$valCol];
+			}
 		}
 
-		return $this->buildTreeBranch($byParent, 0);
+		return $grouped;
 	}
 
 	/**
@@ -1088,25 +1144,6 @@ final class CactiStateRepository implements StateRepository {
 			}
 
 			$out[] = $clean;
-		}
-
-		return $out;
-	}
-
-	/**
-	 * Extract non-empty string values from a named column across fetched rows.
-	 *
-	 * @param mixed $rows Raw result from db_fetch_assoc_prepared().
-	 * @param string $col Column name to extract.
-	 * @return list<string>
-	 */
-	private function columnStrings(mixed $rows, string $col): array {
-		$out = [];
-
-		foreach ($this->normalizeRowList($rows) as $row) {
-			if (is_scalar($row[$col] ?? null)) {
-				$out[] = (string) $row[$col];
-			}
 		}
 
 		return $out;

@@ -302,7 +302,19 @@ final class SettingsProvider implements ResourceProvider {
 	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
 	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
-		$plan    = $this->plan($repo, $desired, $secrets, $options);
+		$plan = null;
+
+		if (isset($options['plannedActions']) && is_array($options['plannedActions'])) {
+			$plan = [];
+
+			foreach ($options['plannedActions'] as $action) {
+				if ($action instanceof PlanAction) {
+					$plan[] = $action;
+				}
+			}
+		}
+
+		$plan  ??= $this->plan($repo, $desired, $secrets, $options);
 		$applied = [];
 		$values  = is_array($desired['values'] ?? null) ? $desired['values'] : [];
 

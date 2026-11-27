@@ -146,12 +146,25 @@ final class TemplatesProvider implements ResourceProvider {
 	 * @return list<string> Validation error messages.
 	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array {
+		return $this->validateAndInspect($desired, $options)['errors'];
+	}
+
+	/**
+	 * Validate template references and return inspected file payloads in a single pass
+	 * so plan() avoids reading, hashing, and XML/YAML-parsing every template twice.
+	 *
+	 * @param array<array-key, mixed> $desired Desired template list.
+	 * @param array<string, mixed> $options Validation options (baseDir, templateCompilers).
+	 * @return array{errors: list<string>, inspected: array<string, array{resolvedPath: string, sha256: string, isPackage: bool, xmlContent: ?string}>}
+	 */
+	private function validateAndInspect(array $desired, array $options): array {
 		$errors    = [];
+		$inspected = [];
 		$baseDir   = is_string($options['baseDir'] ?? null) ? $options['baseDir'] : '';
 		$compilers = $this->resolveCompilers($options);
 
 		if ($desired !== [] && !array_is_list($desired)) {
-			return ['templates must be a list of template reference objects'];
+			return ['errors' => ['templates must be a list of template reference objects'], 'inspected' => []];
 		}
 
 		$seen = [];
@@ -198,13 +211,13 @@ final class TemplatesProvider implements ResourceProvider {
 			}
 
 			try {
-				TemplateBridge::inspectTemplateFile($path, $baseDir, $sha256, $compilers);
+				$inspected[$path] = TemplateBridge::inspectTemplateFile($path, $baseDir, $sha256, $compilers);
 			} catch (CodecException $e) {
 				$errors[] = sprintf('templates[%d]: %s', (int) $idx, $e->getMessage());
 			}
 		}
 
-		return $errors;
+		return ['errors' => $errors, 'inspected' => $inspected];
 	}
 
 	/**
@@ -217,8 +230,10 @@ final class TemplatesProvider implements ResourceProvider {
 	 * @return list<PlanAction> Planned template actions.
 	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
-		$actions = [];
-		$errors  = $this->validate($desired, $secrets, $options);
+		$actions  = [];
+		$checked  = $this->validateAndInspect($desired, $options);
+		$errors   = $checked['errors'];
+		$cached   = $checked['inspected'];
 
 		foreach ($errors as $error) {
 			$actions[] = new PlanAction('templates', PlanAction::ERROR, 'templates', $error);
@@ -233,9 +248,11 @@ final class TemplatesProvider implements ResourceProvider {
 
 		$knownHashes = [];
 
-		foreach (array_merge($repo->getHostTemplates(), $repo->getDataQueries(), $repo->getGraphTemplates()) as $tpl) {
-			if ($tpl['hash'] !== '') {
-				$knownHashes[strtolower($tpl['hash'])] = true;
+		foreach ([$repo->getHostTemplates(), $repo->getDataQueries(), $repo->getGraphTemplates()] as $group) {
+			foreach ($group as $tpl) {
+				if ($tpl['hash'] !== '') {
+					$knownHashes[strtolower($tpl['hash'])] = true;
+				}
 			}
 		}
 
@@ -254,7 +271,7 @@ final class TemplatesProvider implements ResourceProvider {
 			}
 
 			try {
-				$inspected = TemplateBridge::inspectTemplateFile($path, $baseDir, $sha256, $compilers);
+				$inspected = $cached[$path] ?? TemplateBridge::inspectTemplateFile($path, $baseDir, $sha256, $compilers);
 			} catch (CodecException $e) {
 				$actions[] = new PlanAction('templates', PlanAction::ERROR, $path, $e->getMessage());
 
@@ -268,7 +285,13 @@ final class TemplatesProvider implements ResourceProvider {
 			}
 
 			$hashes  = TemplateBridge::extractHashes((string) $inspected['xmlContent']);
-			$missing = array_values(array_filter($hashes, static fn (string $h): bool => !isset($knownHashes[$h])));
+			$missing = [];
+
+			foreach ($hashes as $h) {
+				if (!isset($knownHashes[$h])) {
+					$missing[] = $h;
+				}
+			}
 
 			if ($hashes === [] || $missing !== []) {
 				$actions[] = new PlanAction(
@@ -293,10 +316,30 @@ final class TemplatesProvider implements ResourceProvider {
 	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
 	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
-		$plan      = $this->plan($repo, $desired, $secrets, $options);
+		$plan = null;
+
+		if (isset($options['plannedActions']) && is_array($options['plannedActions'])) {
+			$plan = [];
+
+			foreach ($options['plannedActions'] as $action) {
+				if ($action instanceof PlanAction) {
+					$plan[] = $action;
+				}
+			}
+		}
+
+		$plan    ??= $this->plan($repo, $desired, $secrets, $options);
 		$baseDir   = is_string($options['baseDir'] ?? null) ? $options['baseDir'] : '';
 		$compilers = $this->resolveCompilers($options);
 		$applied   = [];
+
+		if ($plan === []) {
+			return [
+				'applied'          => [],
+				'needsReplication' => false,
+				'needsPollerCache' => false,
+			];
+		}
 
 		$byPath = [];
 

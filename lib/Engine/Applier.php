@@ -68,6 +68,7 @@ final class Applier {
 			return new ApplyResult(false, '', [], ['A valid 64-character SHA-256 --confirm=<PLAN_HASH> is required to apply'], false, false, 0);
 		}
 
+		$startNs          = hrtime(true);
 		$applied          = [];
 		$needsReplication = false;
 		$needsPollerCache = false;
@@ -89,30 +90,51 @@ final class Applier {
 					}
 				}
 
-				$auditId = $this->writeAudit($repo, $actor, $source, $livePlanHash, 'refused', [], $errors);
+				$durationMs = self::elapsedMs($startNs);
+				$auditId    = $this->writeAudit($repo, $actor, $source, $livePlanHash, 'refused', [], $errors, $durationMs);
 
 				return new ApplyResult(false, $livePlanHash, [], $errors, false, false, $auditId);
 			}
 
 			if (!hash_equals($livePlanHash, $confirm)) {
 				$repo->rollback();
-				$error   = sprintf('Plan hash mismatch (expected %s, live %s); controller state drifted since planning. Re-run plan.', $confirm, $livePlanHash);
-				$auditId = $this->writeAudit($repo, $actor, $source, $livePlanHash, 'drifted', [], [$error]);
+				$error      = sprintf('Plan hash mismatch (expected %s, live %s); controller state drifted since planning. Re-run plan.', $confirm, $livePlanHash);
+				$durationMs = self::elapsedMs($startNs);
+				$auditId    = $this->writeAudit($repo, $actor, $source, $livePlanHash, 'drifted', [], [$error], $durationMs);
 
 				return new ApplyResult(false, $livePlanHash, [], [$error], false, false, $auditId);
 			}
 
 			if (!$livePlan->hasChanges()) {
 				$repo->commit();
-				$auditId = $this->writeAudit($repo, $actor, $source, $livePlanHash, 'noop', [], []);
+				$durationMs = self::elapsedMs($startNs);
+				$auditId    = $this->writeAudit($repo, $actor, $source, $livePlanHash, 'noop', [], [], $durationMs);
 
 				return new ApplyResult(true, $livePlanHash, [], [], false, false, $auditId);
 			}
 
-			$applyOptions = $options + ['planHash' => $livePlanHash];
+			/** @var array<string, list<PlanAction>> $actionsByDomain */
+			$actionsByDomain = [];
+
+			foreach ($livePlan->actions as $action) {
+				if (!$action->isMutation()) {
+					continue;
+				}
+
+				$targetDomain                     = str_starts_with($action->domain, 'plugin:') ? 'plugins' : $action->domain;
+				$actionsByDomain[$targetDomain][] = $action;
+			}
+
+			$baseApplyOptions = $options + ['planHash' => $livePlanHash];
 
 			foreach ($this->planner->orderedDomains() as $domain) {
 				if (!isset($document->spec[$domain]) || !is_array($document->spec[$domain])) {
+					continue;
+				}
+
+				$domainActions = $actionsByDomain[$domain] ?? [];
+
+				if ($domainActions === []) {
 					continue;
 				}
 
@@ -122,7 +144,7 @@ final class Applier {
 					continue;
 				}
 
-				$result = $provider->apply($repo, $document->spec[$domain], $secrets, $applyOptions);
+				$result = $provider->apply($repo, $document->spec[$domain], $secrets, $baseApplyOptions + ['plannedActions' => $domainActions]);
 
 				foreach ($result['applied'] as $act) {
 					$applied[] = $act;
@@ -135,8 +157,9 @@ final class Applier {
 			$repo->commit();
 		} catch (\Throwable $e) {
 			$repo->rollback();
-			$error   = 'Apply aborted and rolled back: ' . $e->getMessage();
-			$auditId = $this->writeAudit($repo, $actor, $source, $livePlanHash !== '' ? $livePlanHash : $confirm, 'failed', [], [$error]);
+			$error      = 'Apply aborted and rolled back: ' . $e->getMessage();
+			$durationMs = self::elapsedMs($startNs);
+			$auditId    = $this->writeAudit($repo, $actor, $source, $livePlanHash !== '' ? $livePlanHash : $confirm, 'failed', [], [$error], $durationMs);
 
 			return new ApplyResult(false, $livePlanHash !== '' ? $livePlanHash : $confirm, [], [$error], false, false, $auditId);
 		}
@@ -149,9 +172,20 @@ final class Applier {
 			$repo->triggerPollerCacheUpdate(null);
 		}
 
-		$auditId = $this->writeAudit($repo, $actor, $source, $livePlanHash, 'succeeded', $applied, []);
+		$durationMs = self::elapsedMs($startNs);
+		$auditId    = $this->writeAudit($repo, $actor, $source, $livePlanHash, 'succeeded', $applied, [], $durationMs);
 
 		return new ApplyResult(true, $livePlanHash, $applied, [], $needsReplication, $needsPollerCache, $auditId);
+	}
+
+	/**
+	 * Convert a monotonic hrtime() start timestamp into non-negative elapsed milliseconds.
+	 *
+	 * @param int $startNs Monotonic start timestamp from hrtime(true).
+	 * @return int Non-negative elapsed milliseconds.
+	 */
+	private static function elapsedMs(int $startNs): int {
+		return max(0, (int) round((hrtime(true) - $startNs) / 1_000_000));
 	}
 
 	/**
@@ -164,6 +198,7 @@ final class Applier {
 	 * @param string $status Outcome status ('succeeded', 'noop', 'drifted', 'refused', 'failed').
 	 * @param list<PlanAction> $applied Applied plan actions.
 	 * @param list<string> $errors Error messages recorded on failure or refusal.
+	 * @param int $durationMs Elapsed apply wall-clock duration in milliseconds.
 	 * @return int Inserted audit row ID.
 	 */
 	private function writeAudit(
@@ -174,6 +209,7 @@ final class Applier {
 		string $status,
 		array $applied,
 		array $errors,
+		int $durationMs,
 	): int {
 		$created = 0;
 		$updated = 0;
@@ -189,7 +225,8 @@ final class Applier {
 		}
 
 		$summary = json_encode([
-			'applied' => array_map(static fn (PlanAction $a): array => [
+			'durationMs' => $durationMs,
+			'applied'    => array_map(static fn (PlanAction $a): array => [
 				'domain'     => $a->domain,
 				'operation'  => $a->operation,
 				'naturalKey' => $a->naturalKey,
