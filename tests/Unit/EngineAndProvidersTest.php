@@ -142,6 +142,12 @@ YAML;
 		// Re-planning after apply must be a clean zero-change no-op (only reference warning).
 		$planAfter = $service->plan($doc);
 		$this->assertFalse($planAfter->hasChanges());
+
+		// Exporting live state (omitSecrets) and re-planning must report zero drift across both YAML and XML.
+		$exportedYaml = $service->export(CascCodec::YAML, ['omitSecrets' => true]);
+		$exportedXml  = $service->export(CascCodec::XML, ['omitSecrets' => true]);
+		$this->assertFalse($service->plan(CascCodec::parse(CascCodec::YAML, $exportedYaml))->hasChanges());
+		$this->assertFalse($service->plan(CascCodec::parse(CascCodec::XML, $exportedXml))->hasChanges());
 	}
 
 	public function testApplyAbortsWhenLiveStateDriftsAfterPlan(): void {

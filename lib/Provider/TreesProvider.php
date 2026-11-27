@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace Somethingwithproof\Casc\Provider;
 
 use Somethingwithproof\Casc\Engine\PlanAction;
+use Somethingwithproof\Casc\Model\CascDocument;
 use Somethingwithproof\Casc\Repository\StateRepository;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
@@ -252,8 +253,8 @@ final class TreesProvider implements ResourceProvider {
 		}
 
 		if (array_key_exists('items', $entry)) {
-			$curItems = isset($existing['items']) && is_array($existing['items']) ? array_values($existing['items']) : [];
-			$desItems = is_array($entry['items']) ? array_values($entry['items']) : [];
+			$curItems = self::canonicalizeItems(isset($existing['items']) && is_array($existing['items']) ? array_values($existing['items']) : []);
+			$desItems = self::canonicalizeItems(is_array($entry['items']) ? array_values($entry['items']) : []);
 
 			if ($curItems !== $desItems) {
 				$diffs['items'] = ['from' => count($curItems) . ' root items', 'to' => count($desItems) . ' root items'];
@@ -261,6 +262,21 @@ final class TreesProvider implements ResourceProvider {
 		}
 
 		return $diffs;
+	}
+
+	/**
+	 * Normalize nested tree item maps to sorted keys so PHP === comparison is
+	 * invariant to map key insertion order while preserving list order.
+	 *
+	 * @param list<mixed> $items
+	 * @return list<mixed>
+	 */
+	private static function canonicalizeItems(array $items): array {
+		$wrapped = CascDocument::canonicalizeMap(['items' => $items]);
+
+		return isset($wrapped['items']) && is_array($wrapped['items']) && array_is_list($wrapped['items'])
+			? $wrapped['items']
+			: [];
 	}
 
 	private static function str(mixed $value): string {
