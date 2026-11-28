@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Somali <developers@cacti.net>\n"
+"Language: so_SO\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Ma jiro fayl bayaan-habayn oo la soo geliyay."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Lama helin qorshe sugaya oo u dhigma fadhigaaga. Dib u soo geli oo mar kale qorshee."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Waxaa la dhaqan-geliyay qorshaha CasC %s (%d tallaabooyin)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Qorshaynta iyo Dhaqan-gelinta CasC (Maamule)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Soo Geli Bayaan-habayn YAML ama XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Xisaabi Qorshaha"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Dhoofinta CasC iyo Hubinta Leexashada (Akhris Kaliya)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Qaabka Dhoofinta:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Dhoofi Bayaan-habayn Xogta Sirta ah laga Qariyay"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Hubi Leexashada / Qorshaha Tijaabada:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Xaqiiji oo Qorshee"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Xaaladda Habaynta oo Koodh ah iyo Taariikhda Baaritaanka"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Eegista CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Hawl-wadeenka CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Maamulka CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Xaaladda iyo Baaritaanka CasC"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Dhoofinta iyo Leexashada CasC"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Qorshaynta iyo Dhaqan-gelinta CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Habaynta oo Koodh ah (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Galalka Siraha ee Liiska Oggolaanshaha"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Liis galal buuxa oo labo-dhibic kala soocdo kuwaas oo loo oggol yahay tixraacyada sirta file: (faylashu waa inay lahaadaan qaabka 0400 ama 0600 iyadoo aan lahayn xiriiriyeyaal astaan ah)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Waddada Bayaan-habaynta Aasaasiga ah"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Waddo ikhtiyaari ah oo u socota bayaan-habayn aasaasi ah oo caddayn ah oo YAML ama XML ah oo ay adeegsadaan hubinta leexashada, hubinta Doctor, iyo awoodaha xaaladda MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Hay Jadwallada Baaritaanka Marka la Tirtiro"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Xafid jadwallada plugin_casc_audit iyo plugin_casc_plan marka la tirtirayo kordhinta."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Kordhinta CasC waxay u baahan tahay PHP %s ama ka dambeeya. Adeegahani wuxuu ku shaqeeyaa PHP %s, sidaas darteed kordhinta lama rakibin lamana hawl-gelin."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Soo-dejinta/Dhoofinta"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Habaynta oo Koodh ah"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Kordhinta CasC ma daarana."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Kordhinta CasC waxay u baahan tahay PHP %s ama ka dambeeya."

@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Swahili <developers@cacti.net>\n"
+"Language: sw_KE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Hakuna faili ya manifesti iliyopakiwa."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Hakuna mpango unaolingana unaosubiri uliopatikana katika kipindi chako. Pakia tena na upange upya."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Mpango wa CasC %s umetekelezwa (vitendo %d)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Mpango na Utekelezaji wa CasC (Msimamizi)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Pakia Manifesti ya YAML au XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Kokotoa Mpango"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Uhamishaji wa CasC na Ukaguzi wa Mkengeuko (Kusoma Pekee)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Umbizo la Uhamishaji:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Hamisha Manifesti Iliyofichwa Siri"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Kagua Mkengeuko / Mpango wa Majaribio:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Thibitisha na Panga"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Hali ya Usanidi kama Msimbo na Historia ya Ukaguzi"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Mwonekano wa CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Mwendeshaji wa CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Msimamizi wa CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Hali na Ukaguzi wa CasC"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Uhamishaji na Mkengeuko wa CasC"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Mpango na Utekelezaji wa CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Usanidi kama Msimbo (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Saraka za Siri Zilizoruhusiwa"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Orodha iliyotenganishwa kwa koloni ya saraka kamili zinazoruhusiwa kwa marejeleo ya siri ya file: (faili lazima ziwe na ruhusa za 0400 au 0600 bila viungo-ishara)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Njia ya Manifesti ya Msingi"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Njia ya hiari kuelekea manifesti ya msingi ya tamko ya YAML au XML inayotumiwa na ukaguzi wa mkengeuko, ukaguzi wa Doctor, na uwezo wa hali wa MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Hifadhi Majedwali ya Ukaguzi Wakati wa Kuondoa"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Hifadhi majedwali ya plugin_casc_audit na plugin_casc_plan wakati wa kuondoa programu-jalizi."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Programu-jalizi ya CasC inahitaji PHP %s au toleo jipya zaidi. Seva hii inatumia PHP %s, kwa hivyo programu-jalizi haikusakinishwa wala kuwezeshwa."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Leta/Hamisha"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Usanidi kama Msimbo"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Programu-jalizi ya CasC haijawezeshwa."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Programu-jalizi ya CasC inahitaji PHP %s au toleo jipya zaidi."

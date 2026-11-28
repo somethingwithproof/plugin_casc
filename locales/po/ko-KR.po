@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Korean <https://translate.cacti.net/projects/cacti/core/ko/>\n"
+"Language: ko-KR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "업로드된 매니페스트 파일이 없습니다."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "세션에서 일치하는 대기 중인 계획을 찾을 수 없습니다. 파일을 다시 업로드하고 계획을 다시 계산하세요."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "CasC 계획 %s을(를) 적용했습니다 (%d개 작업)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "CasC 계획 및 적용 (관리자)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "YAML 또는 XML 매니페스트 업로드:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "계획 계산"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "CasC 내보내기 및 드리프트 확인 (읽기 전용)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "내보내기 형식:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "마스킹된 매니페스트 내보내기"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "드리프트 확인 / 모의 실행 계획:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "검증 및 계획"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "코드형 구성 상태 및 감사 기록"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "CasC 보기"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "CasC 운영자"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "CasC 관리자"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "CasC 상태 및 감사"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "CasC 내보내기 및 드리프트"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "CasC 계획 및 적용"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "코드형 구성 (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "허용된 비밀 디렉터리 목록"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "file: 비밀 참조에 허용되는 절대 디렉터리 경로 목록으로 콜론으로 구분합니다(파일 권한은 0400 또는 0600이어야 하며 심볼릭 링크는 허용되지 않습니다)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "기준 매니페스트 경로"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "드리프트 확인, Doctor 점검 및 MCP 상태 기능에서 사용하는 선언적 YAML 또는 XML 기준 매니페스트의 선택적 경로입니다."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "제거 시 감사 테이블 유지"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "플러그인 제거 시 plugin_casc_audit 및 plugin_casc_plan 테이블을 보존합니다."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "CasC 플러그인은 PHP %s 이상이 필요합니다. 이 서버는 PHP %s 버전을 실행 중이므로 플러그인이 설치되거나 활성화되지 않았습니다."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "가져오기/내보내기"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "코드형 구성"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "CasC 플러그인이 활성화되어 있지 않습니다."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "CasC 플러그인은 PHP %s 이상이 필요합니다."

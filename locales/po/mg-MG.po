@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Malagasy <developers@cacti.net>\n"
+"Language: mg_MG\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Tsy nisy rakitra manifesta nampidirina."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Tsy nisy drafitra miandry mifanaraka hita tao amin'ny fotoam-piasanao. Avereno ampidirina ary manaova drafitra indray."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Nampiharina ny drafitra CasC %s (hetsika %d)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Drafitra sy Fampiharana CasC (Mpitantana)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Ampidiro ny Manifesta YAML na XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Kajio ny Drafitra"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Fanondranana sy Fanamarinana Fiviliana CasC (Famakiana Ihany)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Endrika Fanondranana:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Aondrana ny Manifesta Voasivana"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Hamarino ny Fiviliana / Drafitra Andrana:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Hamarino sy Manaova Drafitra"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Toetry ny Fikirakirana toy ny Kaody sy Tantaran'ny Fanaraha-maso"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Fijerena CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Mpanatanteraka CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Mpitantana CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Toetra sy Fanaraha-maso CasC"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Fanondranana sy Fiviliana CasC"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Drafitra sy Fampiharana CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Fikirakirana toy ny Kaody (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Lahatahiry Tsiambaratelo Ekena"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Lisitry ny lahatahiry feno sarahin'ny teboka roa mifanindry izay avela ho an'ny tondro tsiambaratelo file: (ny rakitra dia tsy maintsy amin'ny maody 0400 na 0600 ary tsy misy rohy an'ohatra)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Lalan'ny Manifesta Fototra"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Lalana tsy voatery mankany amin'ny manifesta fototra fanambarana YAML na XML ampiasain'ny fanamarinana fiviliana, fanamarinana Doctor, ary fahaizan'ny toetra MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Tahirizina ny Tabilao Fanaraha-maso Rehefa Esorina"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Tahirizina ny tabilao plugin_casc_audit sy plugin_casc_plan rehefa esorina ny fanampiny."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Mitaky PHP %s na vaovao kokoa ny fanampiny CasC. Mampiasa PHP %s ity mpizara ity, ka tsy napetraka na nalefa ny fanampiny."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Fanafarana/Fanondranana"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Fikirakirana toy ny Kaody"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Tsy alefa ny fanampiny CasC."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Mitaky PHP %s na vaovao kokoa ny fanampiny CasC."

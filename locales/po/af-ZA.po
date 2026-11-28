@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Afrikaans <developers@cacti.net>\n"
+"Language: af_ZA\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Geen manifeslêer is opgelaai nie."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Geen ooreenstemmende hangende plan is in u sessie gevind nie. Laai weer op en beplan opnuut."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "CasC-plan %s is toegepas (%d aksies)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "CasC-beplanning en -toepassing (Administrateur)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Laai YAML- of XML-manifes op:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Bereken plan"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "CasC-uitvoer en afwykingskontrole (Leesalleen)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Uitvoerformaat:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Voer geredigeerde manifes uit"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Kontroleer afwyking / Proefloopplan:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Valideer en beplan"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Konfigurasie as Kode-status en ouditgeskiedenis"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "CasC-aansig"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "CasC-operateur"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "CasC-administrateur"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "CasC-status en oudit"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "CasC-uitvoer en afwyking"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "CasC-beplanning en -toepassing"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Konfigurasie as Kode (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Toegelate geheimgidse"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Dubbelpuntgeskeide lys van absolute gidse wat toegelaat word vir file: geheimverwysings (lêers moet modus 0400 of 0600 hê sonder simboliese skakels)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Basislyn-manifespad"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Opsionele pad na 'n deklaratiewe YAML- of XML-basislynmanifes wat deur afwykingskontroles, Doctor-kontroles en MCP-statusvermoëns gebruik word."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Behou oudittabelle by deïnstallasie"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Behou plugin_casc_audit en plugin_casc_plan tabelle wanneer die inpropmodule gedeïnstalleer word."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Die CasC-inpropmodule vereis PHP %s of nuwer. Hierdie bediener gebruik PHP %s, dus is die inpropmodule nie geïnstalleer of geaktiveer nie."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Invoer/Uitvoer"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Konfigurasie as Kode"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Die CasC-inpropmodule is nie geaktiveer nie."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Die CasC-inpropmodule vereis PHP %s of nuwer."

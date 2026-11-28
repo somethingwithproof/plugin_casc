@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Chinese (Traditional Han script) <https://translate.cacti.net/projects/cacti/core/zh_Hant/>\n"
+"Language: zh-TW\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "未上傳任何資訊清單檔案。"
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "在您的工作階段中找不到相符的待執行計畫。請重新上傳並再次規劃。"
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "已套用 CasC 計畫 %s（%d 項操作）。"
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "CasC 規劃與套用（管理員）"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "上傳 YAML 或 XML 資訊清單："
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "計算計畫"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "CasC 匯出與偏移檢查（唯讀）"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "匯出格式："
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "匯出遮蔽機密的資訊清單"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "檢查偏移 / 模擬執行計畫："
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "驗證並規劃"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "組態即程式碼狀態與稽核歷程"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "CasC 檢視"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "CasC 操作員"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "CasC 管理員"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "CasC 狀態與稽核"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "CasC 匯出與偏移"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "CasC 規劃與套用"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "組態即程式碼 (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "允許清單中的機密目錄"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "允許用於 file: 機密參照的絕對目錄清單，以冒號分隔（檔案權限必須為 0400 或 0600，且不可包含符號連結）。"
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "基準資訊清單路徑"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "宣告式 YAML 或 XML 基準資訊清單的選用路徑，供偏移檢查、Doctor 檢查與 MCP 狀態功能使用。"
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "解除安裝時保留稽核資料表"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "解除安裝外掛程式時保留 plugin_casc_audit 與 plugin_casc_plan 資料表。"
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "CasC 外掛程式需要 PHP %s 或更新版本。此伺服器執行的是 PHP %s，因此未安裝或啟用該外掛程式。"
+
+#: setup.php
+msgid "Import/Export"
+msgstr "匯入/匯出"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "組態即程式碼"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "CasC 外掛程式未啟用。"
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "CasC 外掛程式需要 PHP %s 或更新版本。"

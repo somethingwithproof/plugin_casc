@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Arabic (Saudi Arabia) <https://translate.cacti.net/projects/cacti/core/ar_SA/>\n"
+"Language: ar-SA\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "لم يتم رفع أي ملف بيان."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "لم يتم العثور على خطة معلّقة مطابقة في جلستك. أعد الرفع والتخطيط مرة أخرى."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "تم تطبيق خطة CasC %s (%d إجراء)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "تخطيط وتطبيق CasC (المسؤول)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "رفع ملف بيان YAML أو XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "حساب الخطة"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "تصدير CasC وفحص الانحراف (للقراءة فقط)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "تنسيق التصدير:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "تصدير ملف البيان المنقّح"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "فحص الانحراف / خطة تجريبية:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "التحقق والتخطيط"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "حالة التهيئة كشفرة برمجية وسجل التدقيق"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "عرض CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "مشغّل CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "إدارة CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "حالة CasC والتدقيق"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "تصدير CasC والانحراف"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "تخطيط وتطبيق CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "التهيئة كشفرة برمجية (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "أدلة الأسرار المسموح بها"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "قائمة مفصولة بنقطتين رأسيتين للأدلة المطلقة المسموح بها لمراجع الأسرار file: (يجب أن تكون صلاحيات الملفات 0400 أو 0600 دون روابط رمزية)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "مسار ملف البيان الأساسي"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "مسار اختياري لملف بيان أساسي تصريحي بتنسيق YAML أو XML يُستخدم في فحوصات الانحراف وفحوصات Doctor وقدرات حالة MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "الاحتفاظ بجداول التدقيق عند إلغاء التثبيت"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "الاحتفاظ بجدولي plugin_casc_audit و plugin_casc_plan عند إلغاء التثبيت."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "تتطلب إضافة CasC إصدار PHP %s أو أحدث. يعمل هذا الخادم بإصدار PHP %s، لذا لم يتم تثبيت الإضافة أو تفعيلها."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "الاستيراد/التصدير"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "التهيئة كشفرة برمجية"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "إضافة CasC غير مفعّلة."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "تتطلب إضافة CasC إصدار PHP %s أو أحدث."

@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Latvian <https://translate.cacti.net/projects/cacti/core/lv/>\n"
+"Language: lv-LV\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n % 10 == 0 || n % 100 >= 11 && n % 100 <= 19) ? 0 : ((n % 10 == 1 && n % 100 != 11) ? 1 : 2);\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Netika augšupielādēta neviena manifesta datne."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Jūsu sesijā netika atrasts atbilstošs gaidošs plāns. Augšupielādējiet vēlreiz un izveidojiet plānu no jauna."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Lietots CasC plāns %s (darbību skaits: %d)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "CasC plānošana un lietošana (administrators)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Augšupielādēt YAML vai XML manifestu:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Aprēķināt plānu"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "CasC eksports un noviržu pārbaude (tikai lasīšanai)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Eksporta formāts:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Eksportēt maskētu manifestu"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Noviržu pārbaude / izmēģinājuma plāns:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Validēt un plānot"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Konfigurācijas kā koda statuss un audita vēsture"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "CasC skatīšana"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "CasC operators"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "CasC administrators"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "CasC statuss un audits"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "CasC eksports un novirzes"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "CasC plānošana un lietošana"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Konfigurācija kā kods (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Atļautie noslēpumu direktoriji"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Ar kolu atdalīts absolūto direktoriju saraksts, kas atļauts file: noslēpumu atsaucēm (datnēm jābūt ar tiesībām 0400 vai 0600 un bez simboliskajām saitēm)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Bāzes manifesta ceļš"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Neobligāts ceļš līdz deklaratīvam YAML vai XML bāzes manifestam, ko izmanto noviržu pārbaudēm, Doctor pārbaudēm un MCP statusa iespējām."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Saglabāt audita tabulas atinstalēšanas laikā"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Atinstalējot spraudni, saglabāt tabulas plugin_casc_audit un plugin_casc_plan."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "CasC spraudnim nepieciešama PHP %s vai jaunāka versija. Šajā serverī darbojas PHP %s, tāpēc spraudnis netika instalēts vai iespējots."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Imports/eksports"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Konfigurācija kā kods"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "CasC spraudnis nav iespējots."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "CasC spraudnim nepieciešama PHP %s vai jaunāka versija."

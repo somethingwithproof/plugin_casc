@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Hausa <developers@cacti.net>\n"
+"Language: ha_NG\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Ba a ɗora wani fayil ɗin bayani ba."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Ba a sami tsari mai jira da ya dace a zaman aikinka ba. Sake ɗorawa ka sake tsarawa."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "An aiwatar da tsarin CasC %s (matakai %d)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Tsarin CasC da Aiwatarwa (Mai Gudanarwa)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Ɗora Fayil ɗin Bayani na YAML ko XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Lissafa Tsari"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Fitar da CasC da Binciken Karkacewa (Karatu Kawai)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Tsarin Fitarwa:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Fitar da Fayil ɗin Bayani Mai Ɓoyayyen Sirri"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Duba Karkacewa / Tsarin Gwajin Aiki:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Tabbatar kuma Tsara"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Matsayin Saita a Matsayin Lamba da Tarihin Bincike"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Duban CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Mai Gudanar da Aikin CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Gudanarwar CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Matsayin CasC da Bincike"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Fitar da CasC da Karkacewa"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Tsarin CasC da Aiwatarwa"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Saita a Matsayin Lamba (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Manyan Fayilolin Sirri da Aka Ba Izini"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Jerin cikakkun hanyoyin manyan fayiloli da aka raba da digo biyu waɗanda aka ba izini don nassin sirri na file: (dole ne fayiloli su kasance a yanayin 0400 ko 0600 ba tare da hanyoyin haɗi na alama ba)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Hanyar Fayil ɗin Bayani na Asali"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Hanya ta zaɓi zuwa fayil ɗin bayani na asali na YAML ko XML da binciken karkacewa, binciken Doctor, da damar matsayin MCP ke amfani da shi."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Ajiye Teburan Bincike Lokacin Cire Manhaja"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Kiyaye teburan plugin_casc_audit da plugin_casc_plan lokacin cire ƙarin manhajar."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Ƙarin manhajar CasC tana buƙatar PHP %s ko fiye da haka. Wannan sabar tana aiki da PHP %s, don haka ba a shigar ko kunna ƙarin manhajar ba."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Shigarwa/Fitarwa"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Saita a Matsayin Lamba"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Ba a kunna ƙarin manhajar CasC ba."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Ƙarin manhajar CasC tana buƙatar PHP %s ko fiye da haka."

@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Yoruba <developers@cacti.net>\n"
+"Language: yo_NG\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "A kò gbé fáìlì ìwé ìṣètò kankan sókè."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "A kò rí ètò ìṣe tí ń dúró tí ó báramu nínú ìgbà ìwọlé rẹ. Tún gbé sókè kí o sì tún ṣètò."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "A ti mú ètò ìṣe CasC %s ṣẹ (ìgbésẹ̀ %d)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Ètò Ìṣe àti Ìmúṣẹ CasC (Alámòójútó)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Gbé Ìwé Ìṣètò YAML tàbí XML Sókè:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Ṣírò Ètò Ìṣe"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Ìgbéjáde CasC àti Àyẹ̀wò Ìyàtọ̀ Ìṣètò (Kíkà Nìkan)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Ọ̀nà Ìgbéjáde:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Gbé Ìwé Ìṣètò Tí A Bo Àṣírí Rẹ̀ Jáde"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Ṣàyẹ̀wò Ìyàtọ̀ Ìṣètò / Ètò Ìṣe Àdánwò:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Fìdí Múlẹ̀ kí O sì Ṣètò"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Ipò Ìṣètò Gẹ́gẹ́ Bí Kóòdù àti Ìtàn Àyẹ̀wò"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Ìwòran CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Olùṣiṣẹ́ CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Alámòójútó CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Ipò àti Àyẹ̀wò CasC"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Ìgbéjáde àti Ìyàtọ̀ Ìṣètò CasC"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Ètò Ìṣe àti Ìmúṣẹ CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Ìṣètò Gẹ́gẹ́ Bí Kóòdù (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Àwọn Àpò Fáìlì Àṣírí Tí A Fọwọ́sí"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Àtòjọ àwọn àpò fáìlì pípé tí a fi kólọ̀nì pín tí a gbà láyè fún àwọn ìtọ́kasí àṣírí file: (àwọn fáìlì gbọ́dọ̀ wà ní ipò 0400 tàbí 0600 láìsí àwọn ìsopọ̀ àmì)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Ọ̀nà Ìwé Ìṣètò Ìpìlẹ̀"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Ọ̀nà àṣàyàn sí ìwé ìṣètò ìpìlẹ̀ oníṣàpèjúwe YAML tàbí XML tí àwọn àyẹ̀wò ìyàtọ̀ ìṣètò, àwọn àyẹ̀wò Doctor, àti àwọn agbára ipò MCP ń lò."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Pa Àwọn Tábìlì Àyẹ̀wò Mọ́ Nígbà Ìyọkúrò"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Pa àwọn tábìlì plugin_casc_audit àti plugin_casc_plan mọ́ nígbà tí a bá ń yọ àfikún náà kúrò."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Àfikún CasC nílò PHP %s tàbí tuntun jù bẹ́ẹ̀ lọ. Sáfà yìí ń lo PHP %s, nítorí náà a kò fi àfikún náà sí orí ẹ̀rọ tàbí mú un ṣiṣẹ́."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Ìgbéwọlé/Ìgbéjáde"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Ìṣètò Gẹ́gẹ́ Bí Kóòdù"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "A kò mú àfikún CasC ṣiṣẹ́."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Àfikún CasC nílò PHP %s tàbí tuntun jù bẹ́ẹ̀ lọ."

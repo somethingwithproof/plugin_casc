@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Amharic <developers@cacti.net>\n"
+"Language: am_ET\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "ምንም የማኒፌስት ፋይል አልተሰቀለም።"
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "በክፍለ ጊዜዎ ውስጥ የሚዛመድ በመጠባበቅ ላይ ያለ እቅድ አልተገኘም። እንደገና ይስቀሉና እቅድ ያውጡ።"
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "የ CasC እቅድ %s ተተግብሯል (%d እርምጃዎች)።"
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "የ CasC እቅድ እና ትግበራ (አስተዳዳሪ)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "የ YAML ወይም XML ማኒፌስት ስቀል:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "እቅድ አስላ"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "የ CasC ወደ ውጭ መላክ እና የመዛባት ፍተሻ (ለንባብ ብቻ)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "የወደ ውጭ መላኪያ ቅርጸት:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "ሚስጥሩ የተሸፈነ ማኒፌስት ወደ ውጭ ላክ"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "መዛባት ፈትሽ / የሙከራ እቅድ:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "አረጋግጥ እና እቅድ አውጣ"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "ውቅር እንደ ኮድ ሁኔታ እና የኦዲት ታሪክ"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "የ CasC እይታ"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "የ CasC ኦፕሬተር"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "የ CasC አስተዳዳሪ"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "የ CasC ሁኔታ እና ኦዲት"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "የ CasC ወደ ውጭ መላክ እና መዛባት"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "የ CasC እቅድ እና ትግበራ"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "ውቅር እንደ ኮድ (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "የተፈቀዱ የሚስጥር ማውጫዎች"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "ለ file: ሚስጥር ማጣቀሻዎች የተፈቀዱ በሁለት ነጥብ የተለዩ ፍጹም ማውጫዎች ዝርዝር (ፋይሎች ምንም ተምሳሌታዊ አገናኞች ሳይኖራቸው በ0400 ወይም 0600 ሁነታ መሆን አለባቸው)።"
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "የመነሻ ማኒፌስት መንገድ"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "በመዛባት ፍተሻዎች፣ በዶክተር ፍተሻዎች እና በ MCP ሁኔታ ችሎታዎች የሚያገለግል ወደ ገላጭ YAML ወይም XML መነሻ ማኒፌስት አማራጭ መንገድ።"
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "ሲራገፍ የኦዲት ሰንጠረዦችን አቆይ"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "ተሰኪውን ሲያራግፉ plugin_casc_audit እና plugin_casc_plan ሰንጠረዦችን አቆይ።"
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "የ CasC ተሰኪው PHP %s ወይም ከዚያ በላይ ይፈልጋል። ይህ አገልጋይ PHP %s እያስኬደ ስለሆነ ተሰኪው አልተጫነም ወይም አልነቃም።"
+
+#: setup.php
+msgid "Import/Export"
+msgstr "ወደ ውስጥ አስገባ/ወደ ውጭ ላክ"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "ውቅር እንደ ኮድ"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "የ CasC ተሰኪው አልነቃም።"
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "የ CasC ተሰኪው PHP %s ወይም ከዚያ በላይ ይፈልጋል።"
