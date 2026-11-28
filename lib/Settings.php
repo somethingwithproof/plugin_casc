@@ -32,7 +32,11 @@ final class Settings {
 	];
 
 	/**
-	 * @param list<string> $secretDirs
+	 * Construct typed plugin_casc settings.
+	 *
+	 * @param list<string> $secretDirs Allowlisted absolute directories for file: secrets.
+	 * @param string $baselineFile Optional baseline manifest path for drift checks.
+	 * @param bool $uninstallKeepTables Whether to keep plugin_casc tables during uninstall.
 	 */
 	public function __construct(
 		public readonly array $secretDirs,
@@ -42,7 +46,10 @@ final class Settings {
 	}
 
 	/**
-	 * @param array<string, mixed> $row
+	 * Hydrate a typed Settings value object from raw Cacti settings rows.
+	 *
+	 * @param array<string, mixed> $row Raw setting values keyed by setting name.
+	 * @return self Hydrated Settings instance.
 	 */
 	public static function fromRow(array $row): self {
 		$rawDirs = is_scalar($row['casc_secret_dirs'] ?? null) ? (string) $row['casc_secret_dirs'] : '';
@@ -63,7 +70,9 @@ final class Settings {
 	}
 
 	/**
-	 * @return array<string, array<string, mixed>>
+	 * Build Cacti Settings tab form definitions for plugin_casc.
+	 *
+	 * @return array<string, array<string, mixed>> Cacti settings form field map.
 	 */
 	public static function form(): array {
 		return [

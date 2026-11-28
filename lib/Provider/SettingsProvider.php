@@ -27,11 +27,61 @@ use Somethingwithproof\Casc\Secret\SecretException;
 use Somethingwithproof\Casc\Secret\SecretPolicy;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
+/**
+ * Reconciles allowlisted declarative Cacti settings while blocking
+ * installation-local cryptographic keys and exposing local binary paths under
+ * reference.paths.
+ */
 final class SettingsProvider implements ResourceProvider {
+	/**
+	 * Return the settings domain name.
+	 *
+	 * @return string Domain identifier ('settings').
+	 */
 	public function domain(): string {
 		return 'settings';
 	}
 
+	/**
+	 * Return the JSON Schema Draft 2020-12 fragment for spec.settings.
+	 *
+	 * @return array<string, mixed> JSON Schema describing declarative settings and allowlistMode.
+	 */
+	public function describeSchema(): array {
+		$valueProperties = [];
+
+		foreach (SecretPolicy::DECLARATIVE_SETTINGS as $settingName) {
+			$valueProperties[$settingName] = [
+				'type' => ['string', 'integer', 'number', 'boolean', 'null'],
+			];
+		}
+
+		return [
+			'type'                 => 'object',
+			'description'          => 'Allowlisted Cacti global settings reconciliation block.',
+			'additionalProperties' => false,
+			'properties'           => [
+				'allowlistMode' => [
+					'type'    => 'string',
+					'enum'    => ['merge', 'strict'],
+					'default' => 'merge',
+				],
+				'values' => [
+					'type'                 => 'object',
+					'additionalProperties' => false,
+					'properties'           => $valueProperties,
+				],
+			],
+		];
+	}
+
+	/**
+	 * Export allowlisted settings (with secrets redacted) and reference paths.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<string, mixed> $options Export options supporting omitSecrets.
+	 * @return array{spec: array<string, mixed>, reference: array<string, mixed>}
+	 */
 	public function export(StateRepository $repo, array $options = []): array {
 		$omitSecrets = (bool) ($options['omitSecrets'] ?? false);
 		$current     = $repo->getSettings();
@@ -76,6 +126,14 @@ final class SettingsProvider implements ResourceProvider {
 		return ['spec' => $spec, 'reference' => $ref];
 	}
 
+	/**
+	 * Validate settings allowlist compliance, scalar types, and secret references.
+	 *
+	 * @param array<array-key, mixed> $desired Desired settings map.
+	 * @param SecretResolver $secrets Secret reference validator.
+	 * @param array<string, mixed> $options Validation options.
+	 * @return list<string> Validation error messages.
+	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array {
 		$errors = [];
 		$mode   = $desired['allowlistMode'] ?? 'merge';
@@ -131,6 +189,15 @@ final class SettingsProvider implements ResourceProvider {
 		return $errors;
 	}
 
+	/**
+	 * Plan setting creates, updates, and optional strict-mode prunes with masked secrets.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired settings map.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options supporting prune.
+	 * @return list<PlanAction> Planned settings actions.
+	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$actions = [];
 		$errors  = $this->validate($desired, $secrets, $options);
@@ -225,8 +292,29 @@ final class SettingsProvider implements ResourceProvider {
 		return $actions;
 	}
 
+	/**
+	 * Apply planned setting writes and deletes inside the active transaction.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired settings map.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Apply options.
+	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
+	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
-		$plan    = $this->plan($repo, $desired, $secrets, $options);
+		$plan = null;
+
+		if (isset($options['plannedActions']) && is_array($options['plannedActions'])) {
+			$plan = [];
+
+			foreach ($options['plannedActions'] as $action) {
+				if ($action instanceof PlanAction) {
+					$plan[] = $action;
+				}
+			}
+		}
+
+		$plan  ??= $this->plan($repo, $desired, $secrets, $options);
 		$applied = [];
 		$values  = is_array($desired['values'] ?? null) ? $desired['values'] : [];
 
@@ -253,6 +341,12 @@ final class SettingsProvider implements ResourceProvider {
 		];
 	}
 
+	/**
+	 * Convert canonical integer strings to PHP int for typed YAML/XML export.
+	 *
+	 * @param string $raw Raw database setting value.
+	 * @return int|string Typed integer or string scalar.
+	 */
 	private static function exportTypedScalar(string $raw): int|string {
 		if (preg_match('/^(0|-?[1-9][0-9]{0,17})$/D', $raw) === 1) {
 			return (int) $raw;
@@ -261,6 +355,12 @@ final class SettingsProvider implements ResourceProvider {
 		return $raw;
 	}
 
+	/**
+	 * Normalize a manifest scalar into Cacti's settings table string convention.
+	 *
+	 * @param mixed $value Manifest scalar value.
+	 * @return string Database string representation ('on'/'' for booleans).
+	 */
 	private static function scalarToDbString(mixed $value): string {
 		if (is_bool($value)) {
 			return $value ? 'on' : '';

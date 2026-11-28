@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Hebrew (Israel) <https://translate.cacti.net/projects/cacti/core/he_IL/>\n"
+"Language: he-IL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n == 1) ? 0 : ((n == 2) ? 1 : ((n > 10 && n % 10 == 0) ? 2 : 3));\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "לא הועלה קובץ מניפסט."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "לא נמצאה תוכנית ממתינה תואמת בהפעלה שלך. העלה מחדש ותכנן שוב."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "תוכנית CasC %s הוחלה (%d פעולות)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "תכנון והחלה של CasC (מנהל מערכת)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "העלה מניפסט YAML או XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "חשב תוכנית"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "ייצוא ובדיקת סחף של CasC (לקריאה בלבד)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "פורמט ייצוא:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "ייצא מניפסט מושחר"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "בדיקת סחף / תכנון ניסיוני:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "אמת ותכנן"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "סטטוס תצורה כקוד והיסטוריית ביקורת"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "צפייה ב-CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "מפעיל CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "מנהל CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "סטטוס וביקורת CasC"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "ייצוא וסחף CasC"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "תכנון והחלה CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "תצורה כקוד (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "תיקיות סודות מאושרות"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "רשימה מופרדת בנקודתיים של תיקיות מוחלטות המותרות עבור הפניות סוד מסוג file: (הקבצים חייבים להיות בהרשאות 0400 או 0600 ללא קישורים סימבוליים)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "נתיב למניפסט בסיס"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "נתיב אופציונלי למניפסט בסיס הצהרתי בפורמט YAML או XML המשמש לבדיקות סחף, בדיקות אבחון ויכולות סטטוס של MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "שמור טבלאות ביקורת בעת הסרת ההתקנה"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "שמור את הטבלאות plugin_casc_audit ו-plugin_casc_plan בעת הסרת התקנת התוסף."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "תוסף ה-CasC דורש PHP %s ומעלה. שרת זה מריץ PHP %s, ולכן התוסף לא הותקן ולא הופעל."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "ייבוא/ייצוא"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "תצורה כקוד"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "תוסף ה-CasC אינו מופעל."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "תוסף ה-CasC דורש PHP %s ומעלה."

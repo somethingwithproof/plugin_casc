@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Xhosa <developers@cacti.net>\n"
+"Language: xh_ZA\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Akukho fayile yemanifesti ilayishiweyo."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Akukho sicwangciso silindileyo esihambelanayo esifunyenweyo kwiseshoni yakho. Phinda ulayishe uze ucwangcise kwakhona."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Isicwangciso se-CasC %s sisetyenzisiwe (izenzo eziyi-%d)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Isicwangciso nokuSebenzisa i-CasC (Umlawuli)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Layisha iManifesti ye-YAML okanye ye-XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Bala Isicwangciso"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Ukuthumela Ngaphandle kwe-CasC noHlolo loPhambuko (Ukufunda Kuphela)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Ifomathi yoKuthumela Ngaphandle:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Thumela Ngaphandle iManifesti Efihliweyo"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Hlola Uphambuko / Isicwangciso soVavanyo:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Qinisekisa uze Ucwangcise"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Imo yoCwangciso njengeKhowudi neMbali yoPhicotho"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Ukujonga i-CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Umphathi-misebenzi we-CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Umlawuli we-CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Imo ye-CasC noPhicotho"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Ukuthumela Ngaphandle kwe-CasC noPhambuko"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Isicwangciso nokuSebenzisa i-CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Ucwangciso njengeKhowudi (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Iidayirekthri zeMfihlo ezikuLuhlu Oluvunyelweyo"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Uluhlu olwahlulwe ngekholoni lweedayirekthri ezipheleleyo ezivunyelweyo kwizalathiso zemfihlo ze-file: (iifayile mazibe kwimo engu-0400 okanye u-0600 zingenamakhonkco okufanekisa)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Indlela yeManifesti yeSiseko"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Indlela yokuzithandela eya kwimanifesti yesiseko ye-YAML okanye ye-XML esetyenziswa luhlolo lophambuko, uhlolo lwe-Doctor, kunye nezakhono zemo ye-MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Gcina iiTheyibhile zoPhicotho xa Kukhutshwa"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Gcina iitheyibhile ze-plugin_casc_audit kunye ne-plugin_casc_plan xa kukhutshwa isongezelelo."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Isongezelelo se-CasC sifuna i-PHP %s okanye entsha. Le seva isebenzisa i-PHP %s, ngoko ke isongezelelo asifakwanga okanye asivulwanga."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Ukungenisa/Ukuthumela Ngaphandle"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Ucwangciso njengeKhowudi"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Isongezelelo se-CasC asivulwanga."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Isongezelelo se-CasC sifuna i-PHP %s okanye entsha."

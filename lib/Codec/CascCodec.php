@@ -32,10 +32,22 @@ final class CascCodec {
 	public const XML       = 'xml';
 	public const MAX_BYTES = YamlReader::MAX_BYTES;
 
+	/**
+	 * Check whether a format name is a supported manifest codec format.
+	 *
+	 * @param string $format Candidate format identifier.
+	 * @return bool True for 'yaml' or 'xml'.
+	 */
 	public static function isFormat(string $format): bool {
 		return $format === self::YAML || $format === self::XML;
 	}
 
+	/**
+	 * Infer manifest serialization format from a filename extension.
+	 *
+	 * @param string $path Manifest file path.
+	 * @return string Detected format ('xml' or 'yaml').
+	 */
 	public static function detectFormatFromPath(string $path): string {
 		$lower = strtolower($path);
 
@@ -46,6 +58,12 @@ final class CascCodec {
 		return self::YAML;
 	}
 
+	/**
+	 * Infer manifest serialization format from leading content bytes.
+	 *
+	 * @param string $text Raw manifest document text.
+	 * @return string Detected format ('xml' or 'yaml').
+	 */
 	public static function detectFormatFromContent(string $text): string {
 		$trimmed = ltrim($text, "\xEF\xBB\xBF \t\r\n");
 
@@ -56,16 +74,30 @@ final class CascCodec {
 		return self::YAML;
 	}
 
+	/**
+	 * Decode YAML or XML manifest text into a validated CascDocument IR.
+	 *
+	 * @param string $format Source format ('yaml' or 'xml').
+	 * @param string $text Raw manifest text.
+	 * @return CascDocument Validated manifest document.
+	 */
 	public static function parse(string $format, string $text): CascDocument {
 		$tree = match ($format) {
-			self::YAML => YamlReader::parse($text, self::MAX_BYTES),
-			self::XML  => XmlCodec::parse($text, self::MAX_BYTES),
+			self::YAML => YamlReader::parse($text, self::MAX_BYTES, YamlReader::MAX_DEPTH, false),
+			self::XML  => XmlCodec::parse($text, self::MAX_BYTES, XmlCodec::MAX_DEPTH, false),
 			default    => throw new CodecException(sprintf('Unknown format "%s"; use yaml or xml', $format)),
 		};
 
 		return DocumentSchema::build($tree);
 	}
 
+	/**
+	 * Serialize a CascDocument IR into canonical YAML or XML text.
+	 *
+	 * @param string $format Target format ('yaml' or 'xml').
+	 * @param CascDocument $document Canonical document IR.
+	 * @return string Serialized manifest string.
+	 */
 	public static function write(string $format, CascDocument $document): string {
 		$data = $document->toCanonicalArray();
 
@@ -76,6 +108,12 @@ final class CascCodec {
 		};
 	}
 
+	/**
+	 * Read a manifest file from disk enforcing readability and MAX_BYTES limits.
+	 *
+	 * @param string $path Filesystem path to read.
+	 * @return string Raw file contents within MAX_BYTES.
+	 */
 	public static function readFile(string $path): string {
 		if (!is_file($path) || !is_readable($path)) {
 			throw new CodecException(sprintf('Cannot read file "%s"', $path));
@@ -97,7 +135,10 @@ final class CascCodec {
 	}
 
 	/**
-	 * @param resource $stream
+	 * Read manifest contents from an open PHP stream within MAX_BYTES limits.
+	 *
+	 * @param resource $stream Open readable stream resource.
+	 * @return string Raw stream contents within MAX_BYTES.
 	 */
 	public static function readStream($stream): string {
 		$text = stream_get_contents($stream, self::MAX_BYTES + 1);

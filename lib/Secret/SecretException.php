@@ -21,5 +21,8 @@ declare(strict_types=1);
 
 namespace Somethingwithproof\Casc\Secret;
 
+/**
+ * Exception raised when a secret reference is malformed, disallowed, or fails resolution.
+ */
 final class SecretException extends \RuntimeException {
 }

@@ -21,10 +21,20 @@ declare(strict_types=1);
 
 namespace Somethingwithproof\Casc\Engine;
 
+/**
+ * Immutable result value object returned by Applier::apply().
+ */
 final class ApplyResult {
 	/**
-	 * @param list<PlanAction> $applied
-	 * @param list<string> $errors
+	 * Construct an apply result record.
+	 *
+	 * @param bool $succeeded Whether the transaction committed without error.
+	 * @param string $planHash Live SHA-256 plan hash verified during apply.
+	 * @param list<PlanAction> $applied Actions applied during the transaction.
+	 * @param list<string> $errors Refusal, drift, or rollback error messages.
+	 * @param bool $replicationTriggered Whether remote poller replication was triggered.
+	 * @param bool $pollerCacheUpdated Whether the Cacti poller cache was rebuilt.
+	 * @param int $auditId Inserted plugin_casc_audit row ID.
 	 */
 	public function __construct(
 		public readonly bool $succeeded,
@@ -38,6 +48,8 @@ final class ApplyResult {
 	}
 
 	/**
+	 * Serialize the apply result into an associative array for JSON output.
+	 *
 	 * @return array<string, mixed>
 	 */
 	public function toArray(): array {

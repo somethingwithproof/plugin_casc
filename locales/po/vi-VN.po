@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Vietnamese <https://translate.cacti.net/projects/cacti/core/vi/>\n"
+"Language: vi-VN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Chưa có tệp kê khai nào được tải lên."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Không tìm thấy kế hoạch đang chờ khớp trong phiên làm việc của bạn. Vui lòng tải lên lại và lập kế hoạch lại."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Đã áp dụng kế hoạch CasC %s (%d hành động)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Lập kế hoạch & Áp dụng CasC (Quản trị viên)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Tải lên tệp kê khai YAML hoặc XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Tính toán kế hoạch"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Xuất CasC & Kiểm tra sai lệch (Chỉ đọc)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Định dạng xuất:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Xuất tệp kê khai đã ẩn thông tin nhạy cảm"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Kiểm tra sai lệch / Kế hoạch chạy thử:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Xác thực & Lập kế hoạch"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Trạng thái Cấu hình dưới dạng mã & Lịch sử kiểm toán"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Xem CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Vận hành CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Quản trị CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Trạng thái & Kiểm toán CasC"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Xuất & Kiểm tra sai lệch CasC"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Lập kế hoạch & Áp dụng CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Cấu hình dưới dạng mã (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Thư mục bí mật được cho phép"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Danh sách các thư mục tuyệt đối phân tách bằng dấu hai chấm được phép dùng cho tham chiếu bí mật file: (tệp phải có quyền 0400 hoặc 0600 và không có liên kết tượng trưng)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Đường dẫn tệp kê khai cơ sở"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Đường dẫn tùy chọn tới tệp kê khai cơ sở dạng khai báo bằng YAML hoặc XML dùng cho kiểm tra sai lệch, kiểm tra Doctor và các khả năng trạng thái MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Giữ lại bảng kiểm toán khi gỡ cài đặt"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Giữ nguyên các bảng plugin_casc_audit và plugin_casc_plan khi gỡ cài đặt plugin."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Plugin CasC yêu cầu PHP %s trở lên. Máy chủ này đang chạy PHP %s nên plugin chưa được cài đặt hoặc bật."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Nhập/Xuất"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Cấu hình dưới dạng mã"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Plugin CasC chưa được bật."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Plugin CasC yêu cầu PHP %s trở lên."

@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Georgian <https://translate.cacti.net/projects/cacti/core/ka/>\n"
+"Language: ka-GE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "მანიფესტის ფაილი არ ატვირთულა."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "თქვენს სესიაში შესაბამისი მოლოდინში მყოფი გეგმა ვერ მოიძებნა. ხელახლა ატვირთეთ და დაგეგმეთ თავიდან."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "CasC გეგმა %s გამოყენებულია (%d მოქმედება)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "CasC დაგეგმვა და გამოყენება (ადმინისტრატორი)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "YAML ან XML მანიფესტის ატვირთვა:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "გეგმის გამოთვლა"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "CasC ექსპორტი და გადახრის შემოწმება (მხოლოდ წაკითხვა)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "ექსპორტის ფორმატი:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "დაფარული საიდუმლოებებით მანიფესტის ექსპორტი"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "გადახრის შემოწმება / საცდელი გეგმა:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "შემოწმება და დაგეგმვა"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "კონფიგურაცია როგორც კოდი - სტატუსი და აუდიტის ისტორია"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "CasC ნახვა"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "CasC ოპერატორი"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "CasC ადმინისტრატორი"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "CasC სტატუსი და აუდიტი"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "CasC ექსპორტი და გადახრა"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "CasC დაგეგმვა და გამოყენება"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "კონფიგურაცია როგორც კოდი (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "საიდუმლოებების დაშვებული დირექტორიები"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "ორწერტილით გამოყოფილი აბსოლუტური დირექტორიების სია, რომლებიც დაშვებულია file: საიდუმლოს მითითებებისთვის (ფაილებს უნდა ჰქონდეთ 0400 ან 0600 უფლებები, სიმბოლური ბმულების გარეშე)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "საბაზისო მანიფესტის გზა"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "არასავალდებულო გზა დეკლარაციული YAML ან XML საბაზისო მანიფესტისკენ, რომელიც გამოიყენება გადახრის შემოწმებისთვის, Doctor შემოწმებებისა და MCP სტატუსის შესაძლებლობებისთვის."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "აუდიტის ცხრილების შენახვა დეინსტალაციისას"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "plugin_casc_audit და plugin_casc_plan ცხრილების შენახვა პლაგინის დეინსტალაციისას."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "CasC პლაგინს სჭირდება PHP %s ან უფრო ახალი ვერსია. ამ სერვერზე გაშვებულია PHP %s, ამიტომ პლაგინი არ დაინსტალირდა და არ ჩაირთო."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "იმპორტი/ექსპორტი"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "კონფიგურაცია როგორც კოდი"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "CasC პლაგინი ჩართული არ არის."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "CasC პლაგინს სჭირდება PHP %s ან უფრო ახალი ვერსია."

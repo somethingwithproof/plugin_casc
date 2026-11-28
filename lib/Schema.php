@@ -28,20 +28,33 @@ final class Schema {
 	public const VERSION = 1;
 
 	public const HOOKS = [
-		'auth_alternate_realms'  => 'casc_auth_alternate_realms',
-		'config_arrays'          => 'casc_config_arrays',
-		'config_settings'        => 'casc_config_settings',
-		'draw_navigation_text'   => 'casc_draw_navigation_text',
-		'abilities_register'     => 'casc_abilities_register',
-		'doctor_register_checks' => 'casc_doctor_register_checks',
+		'auth_alternate_realms'      => 'casc_auth_alternate_realms',
+		'config_arrays'              => 'casc_config_arrays',
+		'config_settings'            => 'casc_config_settings',
+		'draw_navigation_text'       => 'casc_draw_navigation_text',
+		'abilities_register'         => 'casc_abilities_register',
+		'doctor_register_checks'     => 'casc_doctor_register_checks',
+		'doctor_register_debug_info' => 'casc_doctor_register_debug_info',
+		'api_register_resources'     => 'casc_api_register_resources',
+		'casc_describe_schema'       => 'casc_describe_schema',
 	];
 
 	private const PLUGIN  = 'casc';
 	private const SETTING = 'casc_schema_version';
 
+	/**
+	 * Create a schema manager bound to an optional PDO connection.
+	 *
+	 * @param \PDO|false $connection Explicit PDO connection or false for Cacti's default connection.
+	 */
 	public function __construct(private readonly \PDO|false $connection = false) {
 	}
 
+	/**
+	 * Read the stored schema version number from Cacti's settings table.
+	 *
+	 * @return int Stored integer schema version, or 0 if uninitialized.
+	 */
 	public function storedVersion(): int {
 		$value = db_fetch_cell_prepared(
 			'SELECT value FROM settings WHERE name = ?',
@@ -54,10 +67,20 @@ final class Schema {
 		return is_numeric($value) ? (int) $value : 0;
 	}
 
+	/**
+	 * Check whether the database schema matches the current plugin schema version.
+	 *
+	 * @return bool True when stored schema version equals VERSION.
+	 */
 	public function isCurrent(): bool {
 		return $this->storedVersion() === self::VERSION;
 	}
 
+	/**
+	 * Create or migrate plugin_casc tables idempotently while refusing downgrades.
+	 *
+	 * @return bool True on successful migration, false on downgrade or table creation failure.
+	 */
 	public function migrate(): bool {
 		$from = $this->storedVersion();
 
@@ -91,6 +114,11 @@ final class Schema {
 		return true;
 	}
 
+	/**
+	 * Read the plugin version currently recorded in Cacti's plugin_config table.
+	 *
+	 * @return string Recorded plugin version string.
+	 */
 	public function recordedPluginVersion(): string {
 		return (string) db_fetch_cell_prepared(
 			'SELECT version FROM plugin_config WHERE directory = ?',
@@ -101,6 +129,14 @@ final class Schema {
 		);
 	}
 
+	/**
+	 * Persist plugin metadata fields in Cacti's plugin_config table.
+	 *
+	 * @param string $version Plugin version string.
+	 * @param string $author Plugin author name.
+	 * @param string $homepage Plugin project URL.
+	 * @return void
+	 */
 	public function recordPluginVersion(string $version, string $author, string $homepage): void {
 		db_execute_prepared(
 			'UPDATE plugin_config SET version = ?, author = ?, webpage = ? WHERE directory = ?',
@@ -110,6 +146,11 @@ final class Schema {
 		);
 	}
 
+	/**
+	 * Determine whether plugin_casc is currently enabled in plugin_config.
+	 *
+	 * @return bool True when status equals 1.
+	 */
 	public function pluginEnabled(): bool {
 		return (int) db_fetch_cell_prepared(
 			'SELECT status FROM plugin_config WHERE directory = ?',
@@ -120,6 +161,11 @@ final class Schema {
 		) === 1;
 	}
 
+	/**
+	 * Verify that all declared hooks and RBAC realms are registered in Cacti.
+	 *
+	 * @return bool True when hook and realm counts match declarations.
+	 */
 	public function hooksRegistered(): bool {
 		$placeholders = implode(', ', array_fill(0, count(self::HOOKS), '?'));
 		$hooks        = (int) db_fetch_cell_prepared(
@@ -140,6 +186,11 @@ final class Schema {
 		return $hooks === count(self::HOOKS) && $realms === count(Pages::realms());
 	}
 
+	/**
+	 * Detach plugin_casc tables from plugin_db_changes so uninstall preserves audit data.
+	 *
+	 * @return void
+	 */
 	public function untrackTables(): void {
 		db_execute_prepared(
 			"DELETE FROM plugin_db_changes WHERE plugin = ? AND method = 'create'",
@@ -149,6 +200,11 @@ final class Schema {
 		);
 	}
 
+	/**
+	 * Remove the stored schema version marker during clean uninstall.
+	 *
+	 * @return void
+	 */
 	public function forgetVersion(): void {
 		db_execute_prepared(
 			'DELETE FROM settings WHERE name = ?',
@@ -158,6 +214,12 @@ final class Schema {
 		);
 	}
 
+	/**
+	 * Check whether a table exists in the active MariaDB/MySQL schema.
+	 *
+	 * @param string $table Table name to verify.
+	 * @return bool True when the table exists.
+	 */
 	private function tableExists(string $table): bool {
 		return db_fetch_cell_prepared(
 			'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
@@ -169,7 +231,9 @@ final class Schema {
 	}
 
 	/**
-	 * @return array<string, array<string, mixed>>
+	 * Return Cacti api_plugin_db_table_create() definitions for plugin_casc tables.
+	 *
+	 * @return array<string, array<string, mixed>> Table definitions keyed by table name.
 	 */
 	public static function tables(): array {
 		return [

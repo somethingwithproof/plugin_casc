@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Polish <https://translate.cacti.net/projects/cacti/core/pl/>\n"
+"Language: pl-PL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Nie przesłano pliku manifestu."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Nie znaleziono pasującego oczekującego planu w bieżącej sesji. Prześlij plik ponownie i utwórz nowy plan."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Zastosowano plan CasC %s (akcje: %d)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Planowanie i stosowanie CasC (Administrator)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Prześlij manifest YAML lub XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Oblicz plan"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Eksport i wykrywanie rozbieżności CasC (tylko do odczytu)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Format eksportu:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Eksportuj manifest z ukrytymi sekretami"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Sprawdź rozbieżności / Plan próbny:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Zweryfikuj i zaplanuj"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Status i historia audytu konfiguracji jako kodu"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Podgląd CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Operator CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Administrator CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Status i audyt CasC"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Eksport i rozbieżności CasC"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Planowanie i stosowanie CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Konfiguracja jako kod (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Dozwolone katalogi sekretów"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Oddzielona dwukropkami lista bezwzględnych ścieżek katalogów dozwolonych dla odwołań do sekretów file: (pliki muszą mieć uprawnienia 0400 lub 0600 bez dowiązań symbolicznych)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Ścieżka manifestu bazowego"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Opcjonalna ścieżka do deklaratywnego manifestu bazowego YAML lub XML używanego przez wykrywanie rozbieżności, kontrole Doctor i funkcje statusu MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Zachowaj tabele audytu przy odinstalowaniu"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Zachowaj tabele plugin_casc_audit oraz plugin_casc_plan podczas odinstalowywania wtyczki."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Wtyczka CasC wymaga PHP %s lub nowszego. Ten serwer używa PHP %s, więc wtyczka nie została zainstalowana ani włączona."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Import/Eksport"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Konfiguracja jako kod"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Wtyczka CasC nie jest włączona."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Wtyczka CasC wymaga PHP %s lub nowszego."

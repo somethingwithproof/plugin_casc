@@ -23,8 +23,10 @@ namespace Somethingwithproof\Casc\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use Somethingwithproof\Casc\Codec\CascCodec;
+use Somethingwithproof\Casc\Metrics\CascMetricsCollector;
 use Somethingwithproof\Casc\Pages;
 use Somethingwithproof\Casc\Schema;
+use Somethingwithproof\Casc\Settings;
 
 final class MariaDbIntegrationTest extends TestCase {
 	public function testSchemaHooksRealmsAndEndToEndPlanApply(): void {
@@ -89,5 +91,25 @@ YAML;
 		// Re-plan must now report zero changes.
 		$planAfter = $service->plan($doc, [], 'ci', false);
 		$this->assertFalse($planAfter->hasChanges());
+
+		// Script-server telemetry collector reports live persisted plan/apply metrics.
+		$collector = new CascMetricsCollector(
+			static fn () => $service,
+			static fn (): Settings => casc_settings()
+		);
+		$metrics = $collector->collect();
+		$this->assertSame(0, $metrics['providers_registered']);
+		$this->assertSame(0, $metrics['drift_items']);
+		$this->assertGreaterThanOrEqual(3, (int) $metrics['last_plan_actions']);
+		$this->assertIsInt($metrics['last_apply_ms']);
+		$this->assertGreaterThanOrEqual(0, $metrics['last_apply_ms']);
+		$this->assertSame(0, $metrics['validation_errors']);
+		$this->assertSame(0, $metrics['secret_dirs_configured']);
+
+		$formatted = CascMetricsCollector::format($metrics);
+		$this->assertMatchesRegularExpression(
+			'/^providers_registered:\d+ drift_items:\d+ last_plan_actions:\d+ last_apply_ms:\d+ validation_errors:\d+ secret_dirs_configured:\d+$/',
+			$formatted
+		);
 	}
 }

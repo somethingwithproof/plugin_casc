@@ -27,11 +27,61 @@ use Somethingwithproof\Casc\Secret\SecretException;
 use Somethingwithproof\Casc\Secret\SecretPolicy;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
+/**
+ * Reconciles primary and remote Cacti data collectors (pollers) keyed by name
+ * while protecting primary poller id=1 from pruning.
+ */
 final class PollersProvider implements ResourceProvider {
+	/**
+	 * Return the pollers domain name.
+	 *
+	 * @return string Domain identifier ('pollers').
+	 */
 	public function domain(): string {
 		return 'pollers';
 	}
 
+	/**
+	 * Return the JSON Schema Draft 2020-12 fragment for spec.pollers.
+	 *
+	 * @return array<string, mixed> JSON Schema describing declarative poller records.
+	 */
+	public function describeSchema(): array {
+		return [
+			'type'        => 'array',
+			'description' => 'Declarative Cacti primary and remote poller records keyed by unique name.',
+			'items'       => [
+				'type'                 => 'object',
+				'required'             => ['name'],
+				'additionalProperties' => false,
+				'properties'           => [
+					'name'         => ['type' => 'string', 'minLength' => 1],
+					'hostname'     => ['type' => 'string'],
+					'disabled'     => ['type' => 'boolean'],
+					'notes'        => ['type' => 'string'],
+					'timezone'     => ['type' => 'string'],
+					'dbdefault'    => ['type' => 'string'],
+					'dbhost'       => ['type' => 'string'],
+					'dbuser'       => ['type' => 'string'],
+					'dbpass'       => ['type' => 'string'],
+					'dbport'       => ['type' => 'integer', 'minimum' => 1, 'maximum' => 65535],
+					'dbretries'    => ['type' => 'integer', 'minimum' => 0],
+					'dbssl'        => ['type' => 'string'],
+					'processes'    => ['type' => 'integer', 'minimum' => 1],
+					'threads'      => ['type' => 'integer', 'minimum' => 1],
+					'syncInterval' => ['type' => 'integer', 'minimum' => 1],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Export pollers with primary poller first and secrets redacted.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<string, mixed> $options Export options supporting omitSecrets.
+	 * @return array{spec: list<array<string, mixed>>}
+	 */
 	public function export(StateRepository $repo, array $options = []): array {
 		$omitSecrets = (bool) ($options['omitSecrets'] ?? false);
 		$rows        = $repo->getPollers();
@@ -100,6 +150,14 @@ final class PollersProvider implements ResourceProvider {
 		return ['spec' => $out];
 	}
 
+	/**
+	 * Validate poller list structure, natural-key uniqueness, and dbpass secret references.
+	 *
+	 * @param array<array-key, mixed> $desired Desired pollers list.
+	 * @param SecretResolver $secrets Secret reference validator.
+	 * @param array<string, mixed> $options Validation options.
+	 * @return list<string> Validation error messages.
+	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array {
 		$errors = [];
 
@@ -142,6 +200,15 @@ final class PollersProvider implements ResourceProvider {
 		return $errors;
 	}
 
+	/**
+	 * Plan poller creates, updates, and optional remote-poller prunes while protecting id=1.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired pollers list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options supporting prune.
+	 * @return list<PlanAction> Planned poller actions.
+	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$actions = [];
 		$errors  = $this->validate($desired, $secrets, $options);
@@ -161,16 +228,16 @@ final class PollersProvider implements ResourceProvider {
 			$byName[$name] = $row;
 		}
 
-		$desiredNames = [];
+		$desiredNameSet = [];
 
 		foreach ($desired as $entry) {
 			if (!is_array($entry) || !is_string($entry['name'] ?? null)) {
 				continue;
 			}
 
-			$name           = trim($entry['name']);
-			$desiredNames[] = $name;
-			$existing       = $byName[$name] ?? null;
+			$name                  = trim($entry['name']);
+			$desiredNameSet[$name] = true;
+			$existing              = $byName[$name] ?? null;
 
 			if (isset($entry['dbpass']) && is_scalar($entry['dbpass']) && SecretPolicy::isSecretReference((string) $entry['dbpass'])) {
 				try {
@@ -199,7 +266,7 @@ final class PollersProvider implements ResourceProvider {
 
 		if ($prune) {
 			foreach ($byName as $name => $row) {
-				if (in_array($name, $desiredNames, true)) {
+				if (isset($desiredNameSet[$name])) {
 					continue;
 				}
 
@@ -216,9 +283,26 @@ final class PollersProvider implements ResourceProvider {
 		return $actions;
 	}
 
+	/**
+	 * Apply planned poller mutations inside the active transaction.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired pollers list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Apply options.
+	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
+	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
-		$plan    = $this->plan($repo, $desired, $secrets, $options);
+		$plan    = self::extractPlannedActions($options) ?? $this->plan($repo, $desired, $secrets, $options);
 		$applied = [];
+
+		if ($plan === []) {
+			return [
+				'applied'          => [],
+				'needsReplication' => false,
+				'needsPollerCache' => false,
+			];
+		}
 
 		$byName = [];
 
@@ -284,9 +368,12 @@ final class PollersProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @param array<string, mixed> $existing
-	 * @param array<array-key, mixed> $entry
-	 * @return array<string, array{from: mixed, to: mixed}>
+	 * Compute masked field-level diffs between a live poller row and desired entry.
+	 *
+	 * @param array<string, mixed> $existing Live poller row.
+	 * @param array<array-key, mixed> $entry Desired poller manifest entry.
+	 * @param SecretResolver $secrets Secret resolver for comparing dbpass.
+	 * @return array<string, array{from: mixed, to: mixed}> Map of changed fields.
 	 */
 	private function diffPoller(array $existing, array $entry, SecretResolver $secrets): array {
 		$diffs = [];
@@ -342,6 +429,34 @@ final class PollersProvider implements ResourceProvider {
 		return $diffs;
 	}
 
+	/**
+	 * Extract precomputed domain actions supplied by Applier::apply() when present.
+	 *
+	 * @param array<string, mixed> $options Apply options map.
+	 * @return list<PlanAction>|null Precomputed actions or null when standalone.
+	 */
+	private static function extractPlannedActions(array $options): ?array {
+		if (!isset($options['plannedActions']) || !is_array($options['plannedActions'])) {
+			return null;
+		}
+
+		$actions = [];
+
+		foreach ($options['plannedActions'] as $action) {
+			if ($action instanceof PlanAction) {
+				$actions[] = $action;
+			}
+		}
+
+		return $actions;
+	}
+
+	/**
+	 * Convert a scalar value to string, returning an empty string for non-scalars.
+	 *
+	 * @param mixed $value Candidate scalar value.
+	 * @return string String representation.
+	 */
 	private static function str(mixed $value): string {
 		return is_scalar($value) ? (string) $value : '';
 	}

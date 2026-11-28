@@ -27,24 +27,51 @@ use Somethingwithproof\Casc\Log;
  * Production Cacti 1.2.x database and core API adapter.
  */
 final class CactiStateRepository implements StateRepository {
+	/**
+	 * Construct a Cacti database repository adapter.
+	 *
+	 * @param string $libraryPath Absolute path to Cacti's lib/ directory.
+	 * @param \PDO|false $connection Explicit PDO connection or false for Cacti's default connection.
+	 */
 	public function __construct(
 		private readonly string $libraryPath,
 		private readonly \PDO|false $connection = false,
 	) {
 	}
 
+	/**
+	 * Begin a Cacti database transaction.
+	 *
+	 * @return void
+	 */
 	public function beginTransaction(): void {
 		db_begin_transaction($this->connection);
 	}
 
+	/**
+	 * Commit the active Cacti database transaction.
+	 *
+	 * @return void
+	 */
 	public function commit(): void {
 		db_commit_transaction($this->connection);
 	}
 
+	/**
+	 * Roll back the active Cacti database transaction.
+	 *
+	 * @return void
+	 */
 	public function rollback(): void {
 		db_rollback_transaction($this->connection);
 	}
 
+	/**
+	 * Mark remote pollers for sync and invoke replicate_out() for each enabled remote collector.
+	 *
+	 * @param string $class Cacti replication class (default 'all').
+	 * @return void
+	 */
 	public function triggerReplication(string $class = 'all'): void {
 		db_execute_prepared("UPDATE poller SET requires_sync = 'on' WHERE id > 1", [], true, $this->connection);
 
@@ -69,6 +96,12 @@ final class CactiStateRepository implements StateRepository {
 		}
 	}
 
+	/**
+	 * Update Cacti's poller cache for a single host or rebuild the entire poller cache.
+	 *
+	 * @param int|null $hostId Target host ID or null for full repopulation.
+	 * @return void
+	 */
 	public function triggerPollerCacheUpdate(?int $hostId = null): void {
 		if (!function_exists('update_poller_cache') && is_file($this->libraryPath . '/utility.php')) {
 			include_once($this->libraryPath . '/utility.php');
@@ -102,6 +135,11 @@ final class CactiStateRepository implements StateRepository {
 		}
 	}
 
+	/**
+	 * Fetch all Cacti settings ordered by name.
+	 *
+	 * @return array<string, string>
+	 */
 	public function getSettings(): array {
 		$rows = db_fetch_assoc_prepared('SELECT name, value FROM settings ORDER BY name', [], true, $this->connection);
 
@@ -120,14 +158,32 @@ final class CactiStateRepository implements StateRepository {
 		return $out;
 	}
 
+	/**
+	 * Upsert a Cacti setting using a prepared statement.
+	 *
+	 * @param string $name Setting name.
+	 * @param string $value Setting value.
+	 * @return void
+	 */
 	public function setSetting(string $name, string $value): void {
 		db_execute_prepared('REPLACE INTO settings (name, value) VALUES (?, ?)', [$name, $value], true, $this->connection);
 	}
 
+	/**
+	 * Delete a Cacti setting by name.
+	 *
+	 * @param string $name Setting name.
+	 * @return void
+	 */
 	public function deleteSetting(string $name): void {
 		db_execute_prepared('DELETE FROM settings WHERE name = ?', [$name], true, $this->connection);
 	}
 
+	/**
+	 * Fetch all site rows ordered by name and ID.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	public function getSites(): array {
 		$rows = db_fetch_assoc_prepared(
 			'SELECT id, name, address1, address2, city, state, postal_code, country, timezone, latitude, longitude, zoom, alternate_id, notes FROM sites ORDER BY name, id',
@@ -139,6 +195,12 @@ final class CactiStateRepository implements StateRepository {
 		return $this->normalizeRowList($rows);
 	}
 
+	/**
+	 * Insert or update a site row in MariaDB and return its numeric ID.
+	 *
+	 * @param array<string, mixed> $site Site column map.
+	 * @return int Saved site ID.
+	 */
 	public function saveSite(array $site): int {
 		$id = isset($site['id']) && is_numeric($site['id']) ? (int) $site['id'] : 0;
 
@@ -192,11 +254,22 @@ final class CactiStateRepository implements StateRepository {
 		return (int) db_fetch_insert_id($this->connection);
 	}
 
+	/**
+	 * Detach devices from a site and delete the site row.
+	 *
+	 * @param int $id Site ID.
+	 * @return void
+	 */
 	public function deleteSite(int $id): void {
 		db_execute_prepared('UPDATE host SET site_id = 0 WHERE site_id = ?', [$id], true, $this->connection);
 		db_execute_prepared('DELETE FROM sites WHERE id = ?', [$id], true, $this->connection);
 	}
 
+	/**
+	 * Fetch all poller rows ordered by ID.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	public function getPollers(): array {
 		$rows = db_fetch_assoc_prepared(
 			'SELECT id, disabled, name, notes, timezone, hostname, dbdefault, dbhost, dbuser, dbpass, dbport, dbretries, dbssl, dbsslkey, dbsslcert, dbsslca, processes, threads, sync_interval FROM poller ORDER BY id',
@@ -208,6 +281,12 @@ final class CactiStateRepository implements StateRepository {
 		return $this->normalizeRowList($rows);
 	}
 
+	/**
+	 * Insert or update a poller row and return its numeric ID.
+	 *
+	 * @param array<string, mixed> $poller Poller column map.
+	 * @return int Saved poller ID.
+	 */
 	public function savePoller(array $poller): int {
 		$id = isset($poller['id']) && is_numeric($poller['id']) ? (int) $poller['id'] : 0;
 
@@ -265,6 +344,12 @@ final class CactiStateRepository implements StateRepository {
 		return (int) db_fetch_insert_id($this->connection);
 	}
 
+	/**
+	 * Delete a remote poller while forbidding deletion of primary poller id=1.
+	 *
+	 * @param int $id Poller ID.
+	 * @return void
+	 */
 	public function deletePoller(int $id): void {
 		if ($id === 1) {
 			throw new \RuntimeException('Primary poller (id=1) cannot be deleted');
@@ -273,6 +358,11 @@ final class CactiStateRepository implements StateRepository {
 		db_execute_prepared('DELETE FROM poller WHERE id = ?', [$id], true, $this->connection);
 	}
 
+	/**
+	 * Fetch all host templates ordered by name.
+	 *
+	 * @return list<array{id: int, hash: string, name: string, class: string}>
+	 */
 	public function getHostTemplates(): array {
 		$rows = db_fetch_assoc_prepared('SELECT id, hash, name, class FROM host_template ORDER BY name', [], true, $this->connection);
 		$out  = [];
@@ -289,6 +379,11 @@ final class CactiStateRepository implements StateRepository {
 		return $out;
 	}
 
+	/**
+	 * Fetch all SNMP data queries ordered by name.
+	 *
+	 * @return list<array{id: int, hash: string, name: string}>
+	 */
 	public function getDataQueries(): array {
 		$rows = db_fetch_assoc_prepared('SELECT id, hash, name FROM snmp_query ORDER BY name', [], true, $this->connection);
 		$out  = [];
@@ -304,6 +399,11 @@ final class CactiStateRepository implements StateRepository {
 		return $out;
 	}
 
+	/**
+	 * Fetch all graph templates ordered by name.
+	 *
+	 * @return list<array{id: int, hash: string, name: string}>
+	 */
 	public function getGraphTemplates(): array {
 		$rows = db_fetch_assoc_prepared('SELECT id, hash, name FROM graph_templates ORDER BY name', [], true, $this->connection);
 		$out  = [];
@@ -319,6 +419,14 @@ final class CactiStateRepository implements StateRepository {
 		return $out;
 	}
 
+	/**
+	 * Import canonical Cacti template XML via core import_xml_data().
+	 *
+	 * @param string $xml Validated <cacti> template XML string.
+	 * @param string $profileName Data source profile name.
+	 * @param bool $replaceSuggestedValues Whether to overwrite suggested values.
+	 * @return bool True when import succeeds.
+	 */
 	public function importTemplateXml(string $xml, string $profileName, bool $replaceSuggestedValues): bool {
 		if (!function_exists('import_xml_data') && is_file($this->libraryPath . '/import.php')) {
 			include_once($this->libraryPath . '/import.php');
@@ -335,6 +443,14 @@ final class CactiStateRepository implements StateRepository {
 		return $result !== false;
 	}
 
+	/**
+	 * Import a signed Cacti .xml.gz package via core import_package().
+	 *
+	 * @param string $filePath Verified package file path.
+	 * @param string $profileName Data source profile name.
+	 * @param bool $replaceSuggestedValues Whether to overwrite suggested values.
+	 * @return bool True when import succeeds.
+	 */
 	public function importTemplatePackage(string $filePath, string $profileName, bool $replaceSuggestedValues): bool {
 		if (!function_exists('import_package') && is_file($this->libraryPath . '/import.php')) {
 			include_once($this->libraryPath . '/import.php');
@@ -350,6 +466,13 @@ final class CactiStateRepository implements StateRepository {
 		return $result !== false;
 	}
 
+	/**
+	 * Export a template as XML via core get_item_xml().
+	 *
+	 * @param string $type Cacti template type.
+	 * @param int $id Template numeric ID.
+	 * @return string|null Exported XML string or null.
+	 */
 	public function exportTemplateXml(string $type, int $id): ?string {
 		if (!function_exists('get_item_xml') && is_file($this->libraryPath . '/export.php')) {
 			include_once($this->libraryPath . '/export.php');
@@ -364,6 +487,12 @@ final class CactiStateRepository implements StateRepository {
 		return is_string($xml) && $xml !== '' ? $xml : null;
 	}
 
+	/**
+	 * Fetch all non-deleted devices with associated data query and graph template names
+	 * in O(1) SQL round-trips (3 bulk queries instead of 2N+1 per-host queries).
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	public function getDevices(): array {
 		$rows = db_fetch_assoc_prepared(
 			'SELECT id, poller_id, site_id, host_template_id, description, hostname, location, notes, external_id, snmp_community, snmp_version, snmp_username, snmp_password, snmp_auth_protocol, snmp_priv_passphrase, snmp_priv_protocol, snmp_context, snmp_engine_id, snmp_port, snmp_timeout, availability_method, ping_method, ping_port, ping_timeout, ping_retries, max_oids, bulk_walk_size, device_threads, disabled FROM host WHERE deleted = "" ORDER BY id',
@@ -374,30 +503,42 @@ final class CactiStateRepository implements StateRepository {
 
 		$devices = $this->normalizeRowList($rows);
 
+		if ($devices === []) {
+			return [];
+		}
+
+		$dqRows = db_fetch_assoc_prepared(
+			'SELECT hsq.host_id, sq.name FROM host_snmp_query AS hsq INNER JOIN snmp_query AS sq ON sq.id = hsq.snmp_query_id ORDER BY hsq.host_id, sq.name',
+			[],
+			true,
+			$this->connection
+		);
+
+		$gtRows = db_fetch_assoc_prepared(
+			'SELECT hg.host_id, gt.name FROM host_graph AS hg INNER JOIN graph_templates AS gt ON gt.id = hg.graph_template_id ORDER BY hg.host_id, gt.name',
+			[],
+			true,
+			$this->connection
+		);
+
+		$dqByHost = $this->groupColumnByIntKey($dqRows, 'host_id', 'name');
+		$gtByHost = $this->groupColumnByIntKey($gtRows, 'host_id', 'name');
+
 		foreach ($devices as $index => $device) {
-			$hostId = $this->int($device, 'id', 0);
-
-			$dqRows = db_fetch_assoc_prepared(
-				'SELECT sq.name FROM host_snmp_query AS hsq INNER JOIN snmp_query AS sq ON sq.id = hsq.snmp_query_id WHERE hsq.host_id = ? ORDER BY sq.name',
-				[$hostId],
-				true,
-				$this->connection
-			);
-
-			$gtRows = db_fetch_assoc_prepared(
-				'SELECT gt.name FROM host_graph AS hg INNER JOIN graph_templates AS gt ON gt.id = hg.graph_template_id WHERE hg.host_id = ? ORDER BY gt.name',
-				[$hostId],
-				true,
-				$this->connection
-			);
-
-			$devices[$index]['data_queries']    = $this->columnStrings($dqRows, 'name');
-			$devices[$index]['graph_templates'] = $this->columnStrings($gtRows, 'name');
+			$hostId                            = $this->int($device, 'id', 0);
+			$devices[$index]['data_queries']    = $dqByHost[$hostId] ?? [];
+			$devices[$index]['graph_templates'] = $gtByHost[$hostId] ?? [];
 		}
 
 		return $devices;
 	}
 
+	/**
+	 * Persist a device through Cacti's api_device_save() and sync query/template links.
+	 *
+	 * @param array<string, mixed> $device Device column map.
+	 * @return int Saved host ID.
+	 */
 	public function saveDevice(array $device): int {
 		if (!function_exists('api_device_save') && is_file($this->libraryPath . '/api_device.php')) {
 			include_once($this->libraryPath . '/api_device.php');
@@ -450,6 +591,12 @@ final class CactiStateRepository implements StateRepository {
 		return $hostId;
 	}
 
+	/**
+	 * Remove a device via Cacti's api_device_remove().
+	 *
+	 * @param int $id Device host ID.
+	 * @return void
+	 */
 	public function deleteDevice(int $id): void {
 		if (!function_exists('api_device_remove') && is_file($this->libraryPath . '/api_device.php')) {
 			include_once($this->libraryPath . '/api_device.php');
@@ -460,6 +607,12 @@ final class CactiStateRepository implements StateRepository {
 		}
 	}
 
+	/**
+	 * Fetch all graph trees and reconstruct their nested item hierarchies in
+	 * O(1) SQL round-trips (2 bulk queries instead of T+1 per-tree queries).
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	public function getTrees(): array {
 		$rows = db_fetch_assoc_prepared(
 			'SELECT id, name, enabled, sort_type FROM graph_tree ORDER BY name, id',
@@ -470,14 +623,40 @@ final class CactiStateRepository implements StateRepository {
 
 		$trees = $this->normalizeRowList($rows);
 
+		if ($trees === []) {
+			return [];
+		}
+
+		$itemRows = db_fetch_assoc_prepared(
+			'SELECT gti.graph_tree_id, gti.id, gti.parent, gti.position, gti.title, gti.host_id, gti.site_id, gti.local_graph_id, h.external_id AS host_external_id, h.hostname AS host_hostname, h.description AS host_description, s.name AS site_name FROM graph_tree_items AS gti LEFT JOIN host AS h ON h.id = gti.host_id LEFT JOIN sites AS s ON s.id = gti.site_id ORDER BY gti.graph_tree_id, gti.parent, gti.position, gti.id',
+			[],
+			true,
+			$this->connection
+		);
+
+		/** @var array<int, array<int, list<array<string, mixed>>>> $byTreeParent */
+		$byTreeParent = [];
+
+		foreach ($this->normalizeRowList($itemRows) as $row) {
+			$treeId                            = $this->int($row, 'graph_tree_id', 0);
+			$parent                            = $this->int($row, 'parent', 0);
+			$byTreeParent[$treeId][$parent][] = $row;
+		}
+
 		foreach ($trees as $idx => $tree) {
-			$treeId                 = $this->int($tree, 'id', 0);
-			$trees[$idx]['items'] = $this->loadTreeItems($treeId);
+			$treeId               = $this->int($tree, 'id', 0);
+			$trees[$idx]['items'] = isset($byTreeParent[$treeId]) ? $this->buildTreeBranch($byTreeParent[$treeId], 0) : [];
 		}
 
 		return $trees;
 	}
 
+	/**
+	 * Save a graph tree and replace its tree item hierarchy.
+	 *
+	 * @param array<string, mixed> $tree Graph tree payload.
+	 * @return int Saved tree ID.
+	 */
 	public function saveTree(array $tree): int {
 		$id = $this->int($tree, 'id', 0);
 
@@ -516,11 +695,22 @@ final class CactiStateRepository implements StateRepository {
 		return $id;
 	}
 
+	/**
+	 * Delete a graph tree and all of its items.
+	 *
+	 * @param int $id Graph tree ID.
+	 * @return void
+	 */
 	public function deleteTree(int $id): void {
 		db_execute_prepared('DELETE FROM graph_tree_items WHERE graph_tree_id = ?', [$id], true, $this->connection);
 		db_execute_prepared('DELETE FROM graph_tree WHERE id = ?', [$id], true, $this->connection);
 	}
 
+	/**
+	 * Fetch all installed plugins from plugin_config.
+	 *
+	 * @return list<array{directory: string, name: string, status: int, version: string}>
+	 */
 	public function getPlugins(): array {
 		$rows = db_fetch_assoc_prepared(
 			'SELECT directory, name, status, version FROM plugin_config ORDER BY directory',
@@ -543,6 +733,13 @@ final class CactiStateRepository implements StateRepository {
 		return $out;
 	}
 
+	/**
+	 * Install/enable or disable a Cacti plugin using core plugin APIs.
+	 *
+	 * @param string $slug Plugin directory slug.
+	 * @param bool $enabled Target enabled state.
+	 * @return void
+	 */
 	public function setPluginEnabled(string $slug, bool $enabled): void {
 		if (!function_exists('api_plugin_enable') && is_file($this->libraryPath . '/plugins.php')) {
 			include_once($this->libraryPath . '/plugins.php');
@@ -565,6 +762,12 @@ final class CactiStateRepository implements StateRepository {
 		}
 	}
 
+	/**
+	 * Insert a zero-secret audit row into plugin_casc_audit.
+	 *
+	 * @param array<string, mixed> $entry Audit column map.
+	 * @return int Inserted audit row ID.
+	 */
 	public function recordAudit(array $entry): int {
 		db_execute_prepared(
 			'INSERT INTO plugin_casc_audit (occurred_at, actor, source, action, plan_hash, status, created_count, updated_count, deleted_count, summary_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -587,6 +790,12 @@ final class CactiStateRepository implements StateRepository {
 		return (int) db_fetch_insert_id($this->connection);
 	}
 
+	/**
+	 * Fetch recent rows from plugin_casc_audit ordered newest first.
+	 *
+	 * @param int $limit Maximum rows to return (clamped to 1..500).
+	 * @return list<array<string, mixed>>
+	 */
 	public function getRecentAudits(int $limit = 50): array {
 		$limit = max(1, min(500, $limit));
 		$rows  = db_fetch_assoc_prepared(
@@ -599,6 +808,16 @@ final class CactiStateRepository implements StateRepository {
 		return $this->normalizeRowList($rows);
 	}
 
+	/**
+	 * Record a computed plan hash in plugin_casc_plan.
+	 *
+	 * @param string $planHash Canonical SHA-256 plan hash.
+	 * @param string $actor Operator identity.
+	 * @param string $manifestSha256 Canonical manifest SHA-256 hash.
+	 * @param int $actionCount Number of planned actions.
+	 * @param int $timestamp Unix epoch timestamp.
+	 * @return void
+	 */
 	public function recordPlan(string $planHash, string $actor, string $manifestSha256, int $actionCount, int $timestamp): void {
 		db_execute_prepared(
 			'REPLACE INTO plugin_casc_plan (plan_hash, created_at, actor, manifest_sha256, action_count) VALUES (?, ?, ?, ?, ?)',
@@ -614,6 +833,42 @@ final class CactiStateRepository implements StateRepository {
 		);
 	}
 
+	/**
+	 * Fetch the most recently persisted plan summary from plugin_casc_plan.
+	 *
+	 * @return array{plan_hash: string, created_at: int, actor: string, manifest_sha256: string, action_count: int}|null
+	 */
+	public function getLatestPlan(): ?array {
+		$rows = db_fetch_assoc_prepared(
+			'SELECT plan_hash, created_at, actor, manifest_sha256, action_count FROM plugin_casc_plan ORDER BY created_at DESC LIMIT 1',
+			[],
+			true,
+			$this->connection
+		);
+
+		$normalized = $this->normalizeRowList($rows);
+
+		if ($normalized === []) {
+			return null;
+		}
+
+		$row = $normalized[0];
+
+		return [
+			'plan_hash'       => $this->str($row, 'plan_hash'),
+			'created_at'      => $this->int($row, 'created_at', 0),
+			'actor'           => $this->str($row, 'actor'),
+			'manifest_sha256' => $this->str($row, 'manifest_sha256'),
+			'action_count'    => $this->int($row, 'action_count', 0),
+		];
+	}
+
+	/**
+	 * Resolve a data source profile name to its numeric ID, falling back to the default profile.
+	 *
+	 * @param string $profileName Data source profile name.
+	 * @return int Resolved profile ID.
+	 */
 	private function resolveProfileId(string $profileName): int {
 		if ($profileName !== '') {
 			/** @var mixed $id */
@@ -643,10 +898,14 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
-	 * @param array<string, mixed> $device
+	 * Synchronize host_snmp_query and host_graph associations for a saved device.
+	 *
+	 * @param int $hostId Saved host ID.
+	 * @param array<string, mixed> $device Device payload containing data_queries and graph_templates.
+	 * @return void
 	 */
 	private function syncDeviceAssociations(int $hostId, array $device): void {
-		if (isset($device['data_queries']) && is_array($device['data_queries'])) {
+		if (isset($device['data_queries']) && is_array($device['data_queries']) && $device['data_queries'] !== []) {
 			$dqMap = [];
 
 			foreach ($this->getDataQueries() as $dq) {
@@ -665,7 +924,7 @@ final class CactiStateRepository implements StateRepository {
 			}
 		}
 
-		if (isset($device['graph_templates']) && is_array($device['graph_templates'])) {
+		if (isset($device['graph_templates']) && is_array($device['graph_templates']) && $device['graph_templates'] !== []) {
 			$gtMap = [];
 
 			foreach ($this->getGraphTemplates() as $gt) {
@@ -686,28 +945,32 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
-	 * @return list<array<string, mixed>>
+	 * Group string values from a column by an integer key column across fetched rows.
+	 *
+	 * @param mixed $rows Raw result from db_fetch_assoc_prepared().
+	 * @param string $keyCol Integer foreign-key column name.
+	 * @param string $valCol String value column name.
+	 * @return array<int, list<string>>
 	 */
-	private function loadTreeItems(int $treeId): array {
-		$rows = db_fetch_assoc_prepared(
-			'SELECT gti.id, gti.parent, gti.position, gti.title, gti.host_id, gti.site_id, gti.local_graph_id, h.external_id AS host_external_id, h.hostname AS host_hostname, h.description AS host_description, s.name AS site_name FROM graph_tree_items AS gti LEFT JOIN host AS h ON h.id = gti.host_id LEFT JOIN sites AS s ON s.id = gti.site_id WHERE gti.graph_tree_id = ? ORDER BY gti.parent, gti.position, gti.id',
-			[$treeId],
-			true,
-			$this->connection
-		);
-
-		$byParent = [];
+	private function groupColumnByIntKey(mixed $rows, string $keyCol, string $valCol): array {
+		$grouped = [];
 
 		foreach ($this->normalizeRowList($rows) as $row) {
-			$parent               = $this->int($row, 'parent', 0);
-			$byParent[$parent][]  = $row;
+			$id = $this->int($row, $keyCol, 0);
+
+			if ($id > 0 && is_scalar($row[$valCol] ?? null)) {
+				$grouped[$id][] = (string) $row[$valCol];
+			}
 		}
 
-		return $this->buildTreeBranch($byParent, 0);
+		return $grouped;
 	}
 
 	/**
-	 * @param array<int, list<array<string, mixed>>> $byParent
+	 * Recursively assemble nested tree items for a given parent item ID.
+	 *
+	 * @param array<int, list<array<string, mixed>>> $byParent Tree item rows grouped by parent ID.
+	 * @param int $parentId Parent item ID (0 for tree root).
 	 * @return list<array<string, mixed>>
 	 */
 	private function buildTreeBranch(array $byParent, int $parentId): array {
@@ -753,7 +1016,12 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
-	 * @param list<mixed> $items
+	 * Recursively insert declarative tree item branches into graph_tree_items.
+	 *
+	 * @param int $treeId Owning graph tree ID.
+	 * @param int $parentId Parent item ID (0 for root level).
+	 * @param list<mixed> $items Declarative tree items to insert.
+	 * @return void
 	 */
 	private function insertTreeItems(int $treeId, int $parentId, array $items): void {
 		$position = 1;
@@ -812,6 +1080,12 @@ final class CactiStateRepository implements StateRepository {
 		}
 	}
 
+	/**
+	 * Resolve a device natural key (external_id or hostname::description) to its host ID.
+	 *
+	 * @param string $key Device natural key.
+	 * @return int Matching host ID or 0 if not found.
+	 */
 	private function resolveDeviceIdByNaturalKey(string $key): int {
 		/** @var mixed $id */
 		$id = db_fetch_cell_prepared(
@@ -846,7 +1120,9 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
-	 * @param mixed $rows
+	 * Normalize a database fetch result into a list of string-keyed row maps.
+	 *
+	 * @param mixed $rows Raw result from db_fetch_assoc_prepared().
 	 * @return list<array<string, mixed>>
 	 */
 	private function normalizeRowList(mixed $rows): array {
@@ -874,51 +1150,58 @@ final class CactiStateRepository implements StateRepository {
 	}
 
 	/**
-	 * @param mixed $rows
-	 * @return list<string>
-	 */
-	private function columnStrings(mixed $rows, string $col): array {
-		$out = [];
-
-		foreach ($this->normalizeRowList($rows) as $row) {
-			if (is_scalar($row[$col] ?? null)) {
-				$out[] = (string) $row[$col];
-			}
-		}
-
-		return $out;
-	}
-
-	/**
-	 * @param array<string, mixed> $row
+	 * Read a scalar string column from a row with a fallback default.
+	 *
+	 * @param array<string, mixed> $row Database or input row.
+	 * @param string $key Column key.
+	 * @param string $default Fallback value when absent or non-scalar.
+	 * @return string String column value.
 	 */
 	private function str(array $row, string $key, string $default = ''): string {
 		return is_scalar($row[$key] ?? null) ? (string) $row[$key] : $default;
 	}
 
 	/**
-	 * @param array<string, mixed> $row
+	 * Read a nullable string column from a row.
+	 *
+	 * @param array<string, mixed> $row Database or input row.
+	 * @param string $key Column key.
+	 * @return string|null String value or null.
 	 */
 	private function nullableStr(array $row, string $key): ?string {
 		return is_scalar($row[$key] ?? null) ? (string) $row[$key] : null;
 	}
 
 	/**
-	 * @param array<string, mixed> $row
+	 * Read an integer column from a row with a fallback default.
+	 *
+	 * @param array<string, mixed> $row Database or input row.
+	 * @param string $key Column key.
+	 * @param int $default Fallback value when absent or non-numeric.
+	 * @return int Integer column value.
 	 */
 	private function int(array $row, string $key, int $default): int {
 		return is_numeric($row[$key] ?? null) ? (int) $row[$key] : $default;
 	}
 
 	/**
-	 * @param array<string, mixed> $row
+	 * Read a nullable integer column from a row.
+	 *
+	 * @param array<string, mixed> $row Database or input row.
+	 * @param string $key Column key.
+	 * @return int|null Integer value or null.
 	 */
 	private function nullableInt(array $row, string $key): ?int {
 		return is_numeric($row[$key] ?? null) ? (int) $row[$key] : null;
 	}
 
 	/**
-	 * @param array<string, mixed> $row
+	 * Read a floating-point column from a row with a fallback default.
+	 *
+	 * @param array<string, mixed> $row Database or input row.
+	 * @param string $key Column key.
+	 * @param float $default Fallback value when absent or non-numeric.
+	 * @return float Float column value.
 	 */
 	private function float(array $row, string $key, float $default): float {
 		return is_numeric($row[$key] ?? null) ? (float) $row[$key] : $default;

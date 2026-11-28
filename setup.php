@@ -23,10 +23,20 @@
  * refusal instead of a fatal parse error.
  */
 
+/**
+ * Determine whether the active PHP runtime meets the PHP 8.2 minimum floor.
+ *
+ * @return bool True when PHP_VERSION is 8.2.0 or newer.
+ */
 function casc_php_supported(): bool {
 	return version_compare(PHP_VERSION, '8.2.0', '>=');
 }
 
+/**
+ * Register the zero-dependency PSR-4 autoloader when running on a supported PHP version.
+ *
+ * @return bool True when plugin_casc booted successfully.
+ */
 function casc_boot(): bool {
 	if (!casc_php_supported()) {
 		return false;
@@ -37,6 +47,11 @@ function casc_boot(): bool {
 	return true;
 }
 
+/**
+ * Emit a clear runtime refusal message when PHP is older than 8.2.0.
+ *
+ * @return bool True when execution was refused due to unsupported PHP.
+ */
 function casc_refuse_unsupported_php(): bool {
 	if (casc_php_supported()) {
 		return false;
@@ -56,7 +71,9 @@ function casc_refuse_unsupported_php(): bool {
 }
 
 /**
- * @return array<string, string>
+ * Parse and return plugin metadata from the INFO file for Cacti's plugin manager.
+ *
+ * @return array<string, string> Metadata key/value pairs from the [info] section.
  */
 function plugin_casc_version(): array {
 	$info = parse_ini_file(__DIR__ . '/INFO', true);
@@ -74,6 +91,11 @@ function plugin_casc_version(): array {
 	return $version;
 }
 
+/**
+ * Cacti plugin install entry point.
+ *
+ * @return void
+ */
 function plugin_casc_install(): void {
 	if (casc_refuse_unsupported_php()) {
 		return;
@@ -82,6 +104,11 @@ function plugin_casc_install(): void {
 	plugin_casc_upgrade();
 }
 
+/**
+ * Cacti plugin configuration check entry point.
+ *
+ * @return bool True when the plugin is ready and upgraded.
+ */
 function plugin_casc_check_config(): bool {
 	if (casc_refuse_unsupported_php()) {
 		return false;
@@ -90,6 +117,11 @@ function plugin_casc_check_config(): bool {
 	return plugin_casc_upgrade();
 }
 
+/**
+ * Perform idempotent schema migration, hook registration, and version recording.
+ *
+ * @return bool True when schema and hooks are current.
+ */
 function plugin_casc_upgrade(): bool {
 	if (!casc_boot()) {
 		return false;
@@ -118,6 +150,8 @@ function plugin_casc_upgrade(): bool {
  * Kept procedural with *_setup_* naming because Cacti's
  * api_plugin_register_hook() and api_plugin_register_realm() validate the
  * caller's function name.
+ *
+ * @return void
  */
 function casc_setup_hooks(): void {
 	global $config;
@@ -137,6 +171,11 @@ function casc_setup_hooks(): void {
 	}
 }
 
+/**
+ * Cacti plugin uninstall entry point with optional audit table retention.
+ *
+ * @return void
+ */
 function plugin_casc_uninstall(): void {
 	if (!casc_boot()) {
 		return;
@@ -152,6 +191,11 @@ function plugin_casc_uninstall(): void {
 	}
 }
 
+/**
+ * Load typed plugin_casc settings from Cacti's settings table.
+ *
+ * @return \Somethingwithproof\Casc\Settings Loaded settings value object.
+ */
 function casc_settings(): \Somethingwithproof\Casc\Settings {
 	$row = array();
 
@@ -162,22 +206,24 @@ function casc_settings(): \Somethingwithproof\Casc\Settings {
 	return \Somethingwithproof\Casc\Settings::fromRow($row);
 }
 
-function casc_provider_registry(): \Somethingwithproof\Casc\Extension\ProviderRegistry {
-	global $config;
-
-	$registry = new \Somethingwithproof\Casc\Extension\ProviderRegistry();
-
+/**
+ * Fetch enabled Cacti plugin hook rows for a named plugin_casc extension hook.
+ *
+ * @param string $hookName Extension hook name stored in plugin_hooks.
+ * @return list<array{name: string, file: string, function: string}> Enabled hook entries.
+ */
+function casc_fetch_extension_hooks(string $hookName): array {
 	if (!function_exists('db_fetch_assoc_prepared')) {
-		return $registry;
+		return array();
 	}
 
 	$rows = db_fetch_assoc_prepared(
 		'SELECT h.name, h.file, h.function FROM plugin_hooks AS h INNER JOIN plugin_config AS c ON c.directory = h.name WHERE h.hook = ? AND h.status = 1 AND c.status = 1 ORDER BY h.name',
-		array('casc_register_providers')
+		array($hookName)
 	);
 
 	if (!is_array($rows)) {
-		return $registry;
+		return array();
 	}
 
 	$hooks = array();
@@ -192,9 +238,20 @@ function casc_provider_registry(): \Somethingwithproof\Casc\Extension\ProviderRe
 		}
 	}
 
+	return $hooks;
+}
+
+/**
+ * Build a safe file path resolver closure for plugin extension hook files.
+ *
+ * @return callable(string, string): (string|false) Resolver mapping (slug, file) to a path.
+ */
+function casc_plugin_file_resolver(): callable {
+	global $config;
+
 	$basePath = is_string($config['base_path'] ?? null) ? $config['base_path'] : '';
 
-	$registry->dispatchHooks($hooks, static function (string $slug, string $file) use ($basePath) {
+	return static function (string $slug, string $file) use ($basePath) {
 		if (function_exists('cacti_plugin_path')) {
 			return cacti_plugin_path($slug, $file);
 		}
@@ -204,11 +261,49 @@ function casc_provider_registry(): \Somethingwithproof\Casc\Extension\ProviderRe
 		}
 
 		return $basePath . '/plugins/' . $slug . '/' . $file;
-	});
+	};
+}
+
+/**
+ * Discover and load fault-isolated sibling plugin providers registered on
+ * casc_register_providers.
+ *
+ * @return \Somethingwithproof\Casc\Extension\ProviderRegistry Populated provider registry.
+ */
+function casc_provider_registry(): \Somethingwithproof\Casc\Extension\ProviderRegistry {
+	$registry = new \Somethingwithproof\Casc\Extension\ProviderRegistry();
+	$hooks    = casc_fetch_extension_hooks('casc_register_providers');
+
+	if ($hooks === array()) {
+		return $registry;
+	}
+
+	$registry->dispatchHooks($hooks, casc_plugin_file_resolver());
 
 	return $registry;
 }
 
+/**
+ * Discover fault-isolated YAML template compilers registered on
+ * casc_register_template_compilers (e.g. optional plugin_yaml).
+ *
+ * @return list<callable(string, array<string, mixed>): mixed> Registered compiler callbacks.
+ */
+function casc_template_compilers(): array {
+	$hooks = casc_fetch_extension_hooks('casc_register_template_compilers');
+
+	if ($hooks === array()) {
+		return array();
+	}
+
+	return \Somethingwithproof\Casc\Codec\TemplateBridge::dispatchCompilerHooks($hooks, casc_plugin_file_resolver());
+}
+
+/**
+ * Construct the fully wired CasC orchestration service for CLI, web, and hooks.
+ *
+ * @return \Somethingwithproof\Casc\Engine\CascService Active CasC service facade.
+ */
 function casc_service(): \Somethingwithproof\Casc\Engine\CascService {
 	global $config;
 
@@ -217,16 +312,23 @@ function casc_service(): \Somethingwithproof\Casc\Engine\CascService {
 	$repo        = new \Somethingwithproof\Casc\Repository\CactiStateRepository($libraryPath, false);
 	$secrets     = new \Somethingwithproof\Casc\Secret\SecretResolver($settings->secretDirs);
 	$registry    = casc_provider_registry();
+	$compilers   = casc_template_compilers();
 	$info        = plugin_casc_version();
 
 	return new \Somethingwithproof\Casc\Engine\CascService(
 		$repo,
 		$secrets,
 		$registry,
-		$info['compat'] ?? '1.2.31'
+		$info['compat'] ?? '1.2.31',
+		$compilers
 	);
 }
 
+/**
+ * Cacti config_arrays hook: register Console menu entries and trigger deferred upgrades.
+ *
+ * @return void
+ */
 function casc_config_arrays(): void {
 	global $menu;
 
@@ -243,6 +345,11 @@ function casc_config_arrays(): void {
 	}
 }
 
+/**
+ * Cacti config_settings hook: expose the CasC settings tab to CasC Admin users.
+ *
+ * @return void
+ */
 function casc_config_settings(): void {
 	global $tabs, $settings;
 
@@ -259,8 +366,10 @@ function casc_config_settings(): void {
 }
 
 /**
- * @param array<string, mixed> $nav
- * @return array<string, mixed>
+ * Cacti draw_navigation_text hook: register breadcrumb navigation entries.
+ *
+ * @param array<string, mixed> $nav Existing Cacti navigation entries.
+ * @return array<string, mixed> Updated navigation entries including CasC pages.
  */
 function casc_draw_navigation_text($nav) {
 	global $current_user;
@@ -278,6 +387,8 @@ function casc_draw_navigation_text($nav) {
 
 /**
  * Resolve 3-tier realm inheritance: Admin > Operator > View.
+ *
+ * @return void
  */
 function casc_auth_alternate_realms(): void {
 	global $user_auth_realm_filenames;
@@ -315,6 +426,11 @@ function casc_auth_alternate_realms(): void {
 	}
 }
 
+/**
+ * Verify whether the current user is authorized for the active CasC Console page.
+ *
+ * @return bool True when access is allowed.
+ */
 function casc_page_allowed(): bool {
 	global $user_auth_realm_filenames;
 
@@ -325,6 +441,11 @@ function casc_page_allowed(): bool {
 	return $realm > 0 && is_realm_allowed($realm);
 }
 
+/**
+ * Guard CasC Console pages for PHP version floor, plugin enablement, and RBAC realm.
+ *
+ * @return bool True when the page may proceed rendering.
+ */
 function casc_page_start(): bool {
 	if (casc_boot() && api_plugin_is_enabled('casc')) {
 		if (casc_page_allowed()) {
@@ -349,7 +470,8 @@ function casc_page_start(): bool {
  * plugin_mcp abilities_register hook: register read-only CasC status and drift
  * abilities.
  *
- * @param mixed $registrar
+ * @param mixed $registrar plugin_mcp AbilitiesRegistrar instance.
+ * @return void
  */
 function casc_abilities_register($registrar): void {
 	if (!casc_boot() || !is_object($registrar)) {
@@ -371,17 +493,75 @@ function casc_abilities_register($registrar): void {
 }
 
 /**
- * plugin_doctor doctor_register_checks hook: contribute CasC diagnostic checks.
+ * plugin_doctor doctor_register_checks hook: contribute CasC diagnostic checks
+ * matching the plugin_doctor contract for both mode='list' and mode='run'.
  *
- * @param mixed $checks
- * @return mixed
+ * @param mixed $context Hook context array containing mode ('run'|'list') and plugin slug.
+ * @return list<array<string, mixed>> Structured check descriptors.
  */
-function casc_doctor_register_checks($checks) {
+function casc_doctor_register_checks($context = array()): array {
 	if (!casc_boot()) {
-		return $checks;
+		return array();
 	}
 
-	$built = \Somethingwithproof\Casc\Integration\DoctorChecks::build(
+	$normalized = array();
+
+	if (is_array($context)) {
+		foreach ($context as $key => $value) {
+			$normalized[(string) $key] = $value;
+		}
+	}
+
+	return \Somethingwithproof\Casc\Integration\DoctorChecks::build(
+		static function (): \Somethingwithproof\Casc\Engine\CascService {
+			return casc_service();
+		},
+		static function (): \Somethingwithproof\Casc\Settings {
+			return casc_settings();
+		},
+		$normalized
+	);
+}
+
+/**
+ * plugin_doctor doctor_register_debug_info hook: contribute Site Health style
+ * runtime metadata with zero secret values.
+ *
+ * @param mixed $context Optional hook context passed by plugin_doctor.
+ * @return list<array<string, mixed>> Debug info section descriptors.
+ */
+function casc_doctor_register_debug_info($context = array()): array {
+	if (!casc_boot()) {
+		return array();
+	}
+
+	$info = plugin_casc_version();
+
+	return \Somethingwithproof\Casc\Integration\DoctorChecks::debugInfo(
+		static function (): \Somethingwithproof\Casc\Engine\CascService {
+			return casc_service();
+		},
+		static function (): \Somethingwithproof\Casc\Settings {
+			return casc_settings();
+		},
+		$info['version'] ?? '0.1.0'
+	);
+}
+
+/**
+ * plugin_api api_register_resources hook: register read and plan CasC API
+ * resource descriptors referencing schema/casc.schema.yaml.
+ *
+ * @param mixed $resources Existing resource list passed through the hook.
+ * @return list<array<string, mixed>> Combined API resource descriptors.
+ */
+function casc_api_register_resources($resources = array()): array {
+	if (!casc_boot()) {
+		return array();
+	}
+
+	return \Somethingwithproof\Casc\Integration\ApiResources::register(
+		$resources,
 		static function (): \Somethingwithproof\Casc\Engine\CascService {
 			return casc_service();
 		},
@@ -389,10 +569,19 @@ function casc_doctor_register_checks($checks) {
 			return casc_settings();
 		}
 	);
+}
 
-	if (is_array($checks)) {
-		return array_merge($checks, $built);
+/**
+ * casc_describe_schema hook: return live JSON Schema Draft 2020-12 metadata
+ * across all core and registered sibling plugin CasC providers.
+ *
+ * @param mixed $context Optional hook context.
+ * @return array<string, mixed> JSON Schema Draft 2020-12 document.
+ */
+function casc_describe_schema($context = array()): array {
+	if (!casc_boot()) {
+		return array();
 	}
 
-	return $built;
+	return casc_service()->describeSchema();
 }

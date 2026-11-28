@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Igbo <developers@cacti.net>\n"
+"Language: ig_NG\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Enweghị faịlụ nkọwa nhazi ebulitere."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Ahụghị atụmatụ na-eche nke dabara adaba na nnọkọ gị. Buliteghachi ma hazie atụmatụ ọzọ."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Etinyere atụmatụ CasC %s n'ọrụ (omume %d)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Atụmatụ CasC na Ntinye n'Ọrụ (Onye nchịkwa)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Bulite Nkọwa Nhazi YAML ma ọ bụ XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Gbakọọ Atụmatụ"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Mbupụ CasC na Nnyocha Mgbanwe (Ọgụgụ Naanị)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Ụdị Mbupụ:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Bupụ Nkọwa Nhazi Ezochiri Nzuzo"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Lelee Mgbanwe / Atụmatụ Nnwale:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Nyochaa ma Hazie Atụmatụ"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Ọnọdụ Nhazi dị ka Koodu na Akụkọ Nnyocha"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Nlele CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Onye Ọrụ CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Nchịkwa CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Ọnọdụ CasC na Nnyocha"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Mbupụ CasC na Mgbanwe"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Atụmatụ CasC na Ntinye n'Ọrụ"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Nhazi dị ka Koodu (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Ndekọ Nzuzo Ekwadoro"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Ndepụta ndekọ zuru oke ejiri kọlọn kewaa nke ekwadoro maka ntụaka nzuzo file: (faịlụ ga-abụrịrị ọnọdụ 0400 ma ọ bụ 0600 n'enweghị njikọ akara)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Ụzọ Nkọwa Nhazi Ntọala"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Ụzọ nhọrọ ruo na nkọwa nhazi ntọala YAML ma ọ bụ XML nke nnyocha mgbanwe, nnyocha Doctor, na ikike ọnọdụ MCP na-eji."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Debe Tebụl Nnyocha Mgbe A Na-ewepụ Ngwa Mgbakwunye"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Chekwaa tebụl plugin_casc_audit na plugin_casc_plan mgbe a na-ewepụ ngwa mgbakwunye ahụ."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Ngwa mgbakwunye CasC chọrọ PHP %s ma ọ bụ nke ọhụrụ. Sava a na-arụ ọrụ na PHP %s, ya mere etinyeghị ma ọ bụ kwado ngwa mgbakwunye ahụ."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Mbubata/Mbupụ"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Nhazi dị ka Koodu"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Ekwadoghị ngwa mgbakwunye CasC."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Ngwa mgbakwunye CasC chọrọ PHP %s ma ọ bụ nke ọhụrụ."

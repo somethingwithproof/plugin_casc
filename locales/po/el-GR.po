@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Greek <https://translate.cacti.net/projects/cacti/core/el/>\n"
+"Language: el-GR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Δεν μεταφορτώθηκε αρχείο μανιφέστου."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Δεν βρέθηκε αντίστοιχο σχέδιο σε εκκρεμότητα στη συνεδρία σας. Μεταφορτώστε ξανά και υπολογίστε νέο σχέδιο."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "Εφαρμόστηκε το σχέδιο CasC %s (%d ενέργειες)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "Σχεδιασμός και εφαρμογή CasC (Διαχειριστής)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "Μεταφόρτωση μανιφέστου YAML ή XML:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Υπολογισμός σχεδίου"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "Εξαγωγή CasC και έλεγχος απόκλισης (Μόνο ανάγνωση)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Μορφή εξαγωγής:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Εξαγωγή μανιφέστου με απόκρυψη ευαίσθητων δεδομένων"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Έλεγχος απόκλισης / Δοκιμαστικό σχέδιο:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Επικύρωση και σχεδιασμός"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Κατάσταση Διαμόρφωσης ως κώδικα και ιστορικό ελέγχου"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "Προβολή CasC"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "Χειριστής CasC"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "Διαχειριστής CasC"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "Κατάσταση και έλεγχος CasC"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "Εξαγωγή και απόκλιση CasC"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "Σχεδιασμός και εφαρμογή CasC"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Διαμόρφωση ως κώδικας (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "Επιτρεπόμενοι κατάλογοι μυστικών"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "Λίστα απόλυτων καταλόγων διαχωρισμένων με άνω και κάτω τελεία που επιτρέπονται για αναφορές μυστικών file: (τα αρχεία πρέπει να έχουν δικαιώματα 0400 ή 0600 χωρίς συμβολικούς συνδέσμους)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Διαδρομή μανιφέστου γραμμής βάσης"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Προαιρετική διαδρομή προς ένα δηλωτικό μανιφέστο γραμμής βάσης YAML ή XML που χρησιμοποιείται από ελέγχους απόκλισης, ελέγχους Doctor και δυνατότητες κατάστασης MCP."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Διατήρηση πινάκων ελέγχου κατά την απεγκατάσταση"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Διατήρηση των πινάκων plugin_casc_audit και plugin_casc_plan κατά την απεγκατάσταση του πρόσθετου."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "Το πρόσθετο CasC απαιτεί PHP %s ή νεότερη έκδοση. Αυτός ο διακομιστής εκτελεί PHP %s, επομένως το πρόσθετο δεν εγκαταστάθηκε ούτε ενεργοποιήθηκε."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "Εισαγωγή/Εξαγωγή"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Διαμόρφωση ως κώδικας"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "Το πρόσθετο CasC δεν είναι ενεργοποιημένο."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "Το πρόσθετο CasC απαιτεί PHP %s ή νεότερη έκδοση."

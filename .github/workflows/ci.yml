@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           php -v
-          for f in *.php include/*.php cli/*.php; do
+          for f in *.php include/*.php cli/*.php scripts/*.php; do
             php -l "$f"
           done
 
@@ -83,18 +83,61 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: dom, json, libxml, pdo, pdo_mysql
-          coverage: none
+          coverage: ${{ matrix.php == '8.4' && 'pcov' || 'none' }}
 
       - name: Lint all PHP files
         run: |
           set -euo pipefail
-          find lib tests cli include -name '*.php' -print0 | xargs -0 -n1 php -l
+          find lib tests cli include scripts -name '*.php' -print0 | xargs -0 -n1 php -l
           for f in *.php; do php -l "$f"; done
 
       - name: Install dev tools (zero runtime dependencies)
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: Run unit and security tests
+      - name: Run unit, security, and quality tests with coverage
+        if: matrix.php == '8.4'
+        run: |
+          set -euo pipefail
+          mkdir -p coverage
+          vendor/bin/phpunit -c phpunit.xml --coverage-clover=coverage/clover.xml
+
+      - name: Enforce minimum 85% line coverage
+        if: matrix.php == '8.4'
+        run: |
+          php -r '
+            $xml = simplexml_load_file("coverage/clover.xml");
+            if ($xml === false || !isset($xml->project->metrics)) {
+              fwrite(STDERR, "Failed to parse coverage/clover.xml\n");
+              exit(1);
+            }
+            $m = $xml->project->metrics;
+            $total = (int) $m["statements"];
+            $covered = (int) $m["coveredstatements"];
+            $pct = $total > 0 ? ($covered / $total) * 100.0 : 0.0;
+            printf("Measured line coverage: %.2f%% (%d / %d statements)\n", $pct, $covered, $total);
+            if ($pct < 85.0) {
+              fwrite(STDERR, "ERROR: Line coverage below required 85.00% threshold\n");
+              exit(1);
+            }
+          '
+
+      - name: Upload coverage report artifact
+        if: matrix.php == '8.4'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: clover-coverage-php84
+          path: coverage/clover.xml
+          if-no-files-found: error
+
+      - name: SonarCloud Scan
+        if: ${{ matrix.php == '8.4' && env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703 # v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Run unit, security, and quality tests
+        if: matrix.php != '8.4'
         run: vendor/bin/phpunit -c phpunit.xml
 
       - name: Run PHPStan Level 9
@@ -196,3 +239,13 @@ jobs:
           php plugins/casc/cli/casc.php export --format=xml --omit-secrets --output=/tmp/cacti-export.xml
           php plugins/casc/cli/casc.php validate --file=/tmp/cacti-export.xml
           php plugins/casc/cli/casc.php drift --file=/tmp/cacti-export.xml --format=json
+          stats_out="$(php plugins/casc/scripts/ss_casc_stats.php)"
+          echo "ss_casc_stats: $stats_out"
+          php -r '
+            $out = trim($argv[1]);
+            $re = "/^providers_registered:(\d+|U) drift_items:(\d+|U) last_plan_actions:(\d+|U) last_apply_ms:(\d+|U) validation_errors:(\d+|U) secret_dirs_configured:(\d+|U)$/";
+            if (preg_match($re, $out) !== 1) {
+              fwrite(STDERR, "Unexpected ss_casc_stats output: $out\n");
+              exit(1);
+            }
+          ' "$stats_out"

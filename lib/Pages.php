@@ -30,6 +30,8 @@ final class Pages {
 	public const ADMIN    = 'casc_admin.php';
 
 	/**
+	 * Return the 3-tier RBAC realm definitions registered with Cacti.
+	 *
 	 * @return list<array{name: string, files: list<string>, default: bool}>
 	 */
 	public static function realms(): array {
@@ -41,6 +43,8 @@ final class Pages {
 	}
 
 	/**
+	 * Return the list of Console entry-point filenames owned by plugin_casc.
+	 *
 	 * @return list<string>
 	 */
 	public static function files(): array {
@@ -48,6 +52,8 @@ final class Pages {
 	}
 
 	/**
+	 * Return Console Import/Export menu titles keyed by entry-point filename.
+	 *
 	 * @return array<string, string>
 	 */
 	public static function menu(): array {
@@ -59,6 +65,8 @@ final class Pages {
 	}
 
 	/**
+	 * Return page filenames that trigger deferred schema/hook upgrades.
+	 *
 	 * @return list<string>
 	 */
 	public static function upgradeTriggers(): array {
@@ -66,6 +74,8 @@ final class Pages {
 	}
 
 	/**
+	 * Return Cacti breadcrumb navigation entries for plugin_casc Console pages.
+	 *
 	 * @return array<string, array{title: string, mapping: string, url: string, level: string}>
 	 */
 	public static function navigation(): array {

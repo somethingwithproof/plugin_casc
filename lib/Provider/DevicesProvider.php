@@ -27,11 +27,70 @@ use Somethingwithproof\Casc\Secret\SecretException;
 use Somethingwithproof\Casc\Secret\SecretPolicy;
 use Somethingwithproof\Casc\Secret\SecretResolver;
 
+/**
+ * Reconciles Cacti devices keyed by external_id or hostname::description with
+ * masked SNMP credentials and poller/site/template resolution.
+ */
 final class DevicesProvider implements ResourceProvider {
+	/**
+	 * Return the devices domain name.
+	 *
+	 * @return string Domain identifier ('devices').
+	 */
 	public function domain(): string {
 		return 'devices';
 	}
 
+	/**
+	 * Return the JSON Schema Draft 2020-12 fragment for spec.devices.
+	 *
+	 * @return array<string, mixed> JSON Schema describing declarative device records.
+	 */
+	public function describeSchema(): array {
+		return [
+			'type'        => 'array',
+			'description' => 'Declarative Cacti devices keyed by external_id or hostname::description.',
+			'items'       => [
+				'type'                 => 'object',
+				'required'             => ['hostname', 'description'],
+				'additionalProperties' => false,
+				'properties'           => [
+					'key'                => ['type' => 'string', 'minLength' => 1],
+					'hostname'           => ['type' => 'string', 'minLength' => 1],
+					'description'        => ['type' => 'string', 'minLength' => 1],
+					'site'               => ['type' => 'string'],
+					'poller'             => ['type' => 'string'],
+					'hostTemplate'       => ['type' => 'string'],
+					'disabled'           => ['type' => 'boolean'],
+					'location'           => ['type' => 'string'],
+					'notes'              => ['type' => 'string'],
+					'snmpVersion'        => ['type' => 'integer', 'enum' => [0, 1, 2, 3]],
+					'snmpCommunity'      => ['type' => 'string'],
+					'snmpUsername'       => ['type' => 'string'],
+					'snmpPassword'       => ['type' => 'string'],
+					'snmpAuthProtocol'   => ['type' => 'string'],
+					'snmpPrivPassphrase' => ['type' => 'string'],
+					'snmpPrivProtocol'   => ['type' => 'string'],
+					'snmpContext'        => ['type' => 'string'],
+					'snmpEngineId'       => ['type' => 'string'],
+					'snmpPort'           => ['type' => 'integer', 'minimum' => 1, 'maximum' => 65535],
+					'snmpTimeout'        => ['type' => 'integer', 'minimum' => 1],
+					'maxOids'            => ['type' => 'integer', 'minimum' => 1],
+					'deviceThreads'      => ['type' => 'integer', 'minimum' => 1],
+					'dataQueries'        => ['type' => 'array', 'items' => ['type' => 'string']],
+					'graphTemplates'     => ['type' => 'array', 'items' => ['type' => 'string']],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Export live devices sorted by natural key with all SNMP secrets redacted.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<string, mixed> $options Export options supporting omitSecrets.
+	 * @return array{spec: list<array<string, mixed>>}
+	 */
 	public function export(StateRepository $repo, array $options = []): array {
 		$omitSecrets = (bool) ($options['omitSecrets'] ?? false);
 
@@ -139,6 +198,14 @@ final class DevicesProvider implements ResourceProvider {
 		return ['spec' => $out];
 	}
 
+	/**
+	 * Validate device entries, required fields, natural keys, and SNMP secret references.
+	 *
+	 * @param array<array-key, mixed> $desired Desired devices list.
+	 * @param SecretResolver $secrets Secret reference validator.
+	 * @param array<string, mixed> $options Validation options.
+	 * @return list<string> Validation error messages.
+	 */
 	public function validate(array $desired, SecretResolver $secrets, array $options = []): array {
 		$errors = [];
 
@@ -194,6 +261,15 @@ final class DevicesProvider implements ResourceProvider {
 		return $errors;
 	}
 
+	/**
+	 * Plan device creates, updates, and optional prunes with masked credential diffs.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired devices list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Planning options supporting prune, plannedSites, plannedPollers.
+	 * @return list<PlanAction> Planned device actions.
+	 */
 	public function plan(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
 		$actions = [];
 		$errors  = $this->validate($desired, $secrets, $options);
@@ -210,8 +286,8 @@ final class DevicesProvider implements ResourceProvider {
 		$knownPollers = $this->pollerNameMap($repo);
 		$knownTpls    = $this->templateNameMap($repo);
 
-		$plannedSites   = is_array($options['plannedSites'] ?? null) ? $options['plannedSites'] : [];
-		$plannedPollers = is_array($options['plannedPollers'] ?? null) ? $options['plannedPollers'] : [];
+		$plannedSiteSet   = self::toNameSet($options['plannedSites'] ?? null);
+		$plannedPollerSet = self::toNameSet($options['plannedPollers'] ?? null);
 
 		$byKey = [];
 
@@ -219,18 +295,19 @@ final class DevicesProvider implements ResourceProvider {
 			$byKey[self::naturalKeyFromRow($row)] = $row;
 		}
 
-		$desiredKeys = [];
+		$desiredKeySet   = [];
+		$resolvedSecrets = [];
 
 		foreach ($desired as $entry) {
 			if (!is_array($entry)) {
 				continue;
 			}
 
-			$key           = self::naturalKeyFromEntry($entry);
-			$desiredKeys[] = $key;
+			$key                 = self::naturalKeyFromEntry($entry);
+			$desiredKeySet[$key] = true;
 
 			if (isset($entry['site']) && is_string($entry['site']) && $entry['site'] !== '') {
-				if (!isset($knownSites[$entry['site']]) && !in_array($entry['site'], $plannedSites, true)) {
+				if (!isset($knownSites[$entry['site']]) && !isset($plannedSiteSet[$entry['site']])) {
 					$actions[] = new PlanAction('devices', PlanAction::ERROR, $key, sprintf('Device "%s" references unknown site "%s"', $key, $entry['site']));
 
 					continue;
@@ -238,7 +315,7 @@ final class DevicesProvider implements ResourceProvider {
 			}
 
 			if (isset($entry['poller']) && is_string($entry['poller']) && $entry['poller'] !== '') {
-				if (!isset($knownPollers[$entry['poller']]) && !in_array($entry['poller'], $plannedPollers, true)) {
+				if (!isset($knownPollers[$entry['poller']]) && !isset($plannedPollerSet[$entry['poller']])) {
 					$actions[] = new PlanAction('devices', PlanAction::ERROR, $key, sprintf('Device "%s" references unknown poller "%s"', $key, $entry['poller']));
 
 					continue;
@@ -248,13 +325,17 @@ final class DevicesProvider implements ResourceProvider {
 			$secretError = null;
 
 			foreach (['snmpCommunity', 'snmpPassword', 'snmpPrivPassphrase'] as $secretField) {
-				if (isset($entry[$secretField]) && is_scalar($entry[$secretField]) && SecretPolicy::isSecretReference((string) $entry[$secretField])) {
-					try {
-						$secrets->resolve((string) $entry[$secretField]);
-					} catch (SecretException $e) {
-						$secretError = $e->getMessage();
+				if (isset($entry[$secretField]) && is_scalar($entry[$secretField])) {
+					$rawSecret = (string) $entry[$secretField];
 
-						break;
+					if (SecretPolicy::isSecretReference($rawSecret) && !array_key_exists($rawSecret, $resolvedSecrets)) {
+						try {
+							$resolvedSecrets[$rawSecret] = $secrets->resolve($rawSecret);
+						} catch (SecretException $e) {
+							$secretError = $e->getMessage();
+
+							break;
+						}
 					}
 				}
 			}
@@ -273,7 +354,7 @@ final class DevicesProvider implements ResourceProvider {
 				continue;
 			}
 
-			$diffs = $this->diffDevice($existing, $entry, $knownSites, $knownPollers, $knownTpls, $secrets);
+			$diffs = $this->diffDevice($existing, $entry, $knownSites, $knownPollers, $knownTpls, $secrets, $resolvedSecrets);
 
 			if ($diffs !== []) {
 				$actions[] = new PlanAction('devices', PlanAction::UPDATE, $key, sprintf('Update device "%s"', $key), $diffs);
@@ -284,7 +365,7 @@ final class DevicesProvider implements ResourceProvider {
 
 		if ($prune) {
 			foreach ($byKey as $key => $row) {
-				if (!in_array($key, $desiredKeys, true)) {
+				if (!isset($desiredKeySet[$key])) {
 					$actions[] = new PlanAction('devices', PlanAction::DELETE, $key, sprintf('Prune unmanaged device "%s"', $key));
 				}
 			}
@@ -293,9 +374,26 @@ final class DevicesProvider implements ResourceProvider {
 		return $actions;
 	}
 
+	/**
+	 * Apply planned device mutations inside the active transaction.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @param array<array-key, mixed> $desired Desired devices list.
+	 * @param SecretResolver $secrets Secret reference resolver.
+	 * @param array<string, mixed> $options Apply options.
+	 * @return array{applied: list<PlanAction>, needsReplication: bool, needsPollerCache: bool}
+	 */
 	public function apply(StateRepository $repo, array $desired, SecretResolver $secrets, array $options = []): array {
-		$plan    = $this->plan($repo, $desired, $secrets, $options);
+		$plan    = self::extractPlannedActions($options) ?? $this->plan($repo, $desired, $secrets, $options);
 		$applied = [];
+
+		if ($plan === []) {
+			return [
+				'applied'          => [],
+				'needsReplication' => false,
+				'needsPollerCache' => false,
+			];
+		}
 
 		$sites   = $this->siteNameMap($repo);
 		$pollers = $this->pollerNameMap($repo);
@@ -315,6 +413,8 @@ final class DevicesProvider implements ResourceProvider {
 			}
 		}
 
+		$resolvedSecrets = [];
+
 		foreach ($plan as $action) {
 			if ($action->operation === PlanAction::ERROR) {
 				throw new \RuntimeException($action->summary);
@@ -329,13 +429,13 @@ final class DevicesProvider implements ResourceProvider {
 				$tplId    = isset($entry['hostTemplate']) && is_string($entry['hostTemplate']) && isset($tpls[$entry['hostTemplate']]) ? $tpls[$entry['hostTemplate']] : (is_numeric($existing['host_template_id'] ?? null) ? (int) $existing['host_template_id'] : 0);
 
 				$snmpCommunity = array_key_exists('snmpCommunity', $entry) && is_scalar($entry['snmpCommunity'])
-					? $secrets->resolve((string) $entry['snmpCommunity'])
+					? self::resolveSecretCached((string) $entry['snmpCommunity'], $secrets, $resolvedSecrets)
 					: self::str($existing['snmp_community'] ?? '');
 				$snmpPassword = array_key_exists('snmpPassword', $entry) && is_scalar($entry['snmpPassword'])
-					? $secrets->resolve((string) $entry['snmpPassword'])
+					? self::resolveSecretCached((string) $entry['snmpPassword'], $secrets, $resolvedSecrets)
 					: self::str($existing['snmp_password'] ?? '');
 				$snmpPrivPassphrase = array_key_exists('snmpPrivPassphrase', $entry) && is_scalar($entry['snmpPrivPassphrase'])
-					? $secrets->resolve((string) $entry['snmpPrivPassphrase'])
+					? self::resolveSecretCached((string) $entry['snmpPrivPassphrase'], $secrets, $resolvedSecrets)
 					: self::str($existing['snmp_priv_passphrase'] ?? '');
 
 				$externalId = isset($entry['key']) && is_string($entry['key']) && !str_contains($entry['key'], '::')
@@ -389,7 +489,10 @@ final class DevicesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @param array<string, mixed> $row
+	 * Derive the canonical natural key from a live database device row.
+	 *
+	 * @param array<string, mixed> $row Database device row.
+	 * @return string External ID or hostname::description natural key.
 	 */
 	public static function naturalKeyFromRow(array $row): string {
 		$ext = is_scalar($row['external_id'] ?? null) ? trim((string) $row['external_id']) : '';
@@ -405,7 +508,10 @@ final class DevicesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @param array<array-key, mixed> $entry
+	 * Derive the canonical natural key from a manifest device entry.
+	 *
+	 * @param array<array-key, mixed> $entry Manifest device entry.
+	 * @return string Explicit key, hostname::description fallback, or empty string.
 	 */
 	public static function naturalKeyFromEntry(array $entry): string {
 		if (is_string($entry['key'] ?? null) && trim($entry['key']) !== '') {
@@ -419,7 +525,10 @@ final class DevicesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @return array<string, int>
+	 * Build a lookup map of site name to numeric site ID.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @return array<string, int> Map of site name to ID.
 	 */
 	private function siteNameMap(StateRepository $repo): array {
 		$map = [];
@@ -434,7 +543,10 @@ final class DevicesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @return array<string, int>
+	 * Build a lookup map of poller name to numeric poller ID.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @return array<string, int> Map of poller name to ID.
 	 */
 	private function pollerNameMap(StateRepository $repo): array {
 		$map = [];
@@ -449,7 +561,10 @@ final class DevicesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @return array<string, int>
+	 * Build a lookup map of host template name to numeric host template ID.
+	 *
+	 * @param StateRepository $repo Active state repository.
+	 * @return array<string, int> Map of host template name to ID.
 	 */
 	private function templateNameMap(StateRepository $repo): array {
 		$map = [];
@@ -462,14 +577,18 @@ final class DevicesProvider implements ResourceProvider {
 	}
 
 	/**
-	 * @param array<string, mixed> $existing
-	 * @param array<array-key, mixed> $entry
-	 * @param array<string, int> $sites
-	 * @param array<string, int> $pollers
-	 * @param array<string, int> $tpls
-	 * @return array<string, array{from: mixed, to: mixed}>
+	 * Compute masked field-level diffs between a live device row and a desired manifest entry.
+	 *
+	 * @param array<string, mixed> $existing Live database device row.
+	 * @param array<array-key, mixed> $entry Desired device manifest entry.
+	 * @param array<string, int> $sites Site name-to-ID map.
+	 * @param array<string, int> $pollers Poller name-to-ID map.
+	 * @param array<string, int> $tpls Host template name-to-ID map.
+	 * @param SecretResolver $secrets Secret resolver for credential comparisons.
+	 * @param array<string, string> $resolvedSecrets Operation-scoped cache of resolved secret values.
+	 * @return array<string, array{from: mixed, to: mixed}> Map of changed fields.
 	 */
-	private function diffDevice(array $existing, array $entry, array $sites, array $pollers, array $tpls, SecretResolver $secrets): array {
+	private function diffDevice(array $existing, array $entry, array $sites, array $pollers, array $tpls, SecretResolver $secrets, array &$resolvedSecrets): array {
 		$diffs = [];
 
 		foreach (['hostname' => 'hostname', 'description' => 'description', 'location' => 'location', 'notes' => 'notes', 'snmpUsername' => 'snmp_username', 'snmpAuthProtocol' => 'snmp_auth_protocol', 'snmpPrivProtocol' => 'snmp_priv_protocol'] as $yamlKey => $dbCol) {
@@ -541,7 +660,7 @@ final class DevicesProvider implements ResourceProvider {
 
 			$cur      = is_scalar($existing[$dbCol] ?? null) ? (string) $existing[$dbCol] : '';
 			$raw      = (string) $entry[$yamlKey];
-			$resolved = $secrets->resolve($raw);
+			$resolved = self::resolveSecretCached($raw, $secrets, $resolvedSecrets);
 
 			if (!hash_equals($cur, $resolved)) {
 				$diffs[$yamlKey] = [
@@ -554,6 +673,75 @@ final class DevicesProvider implements ResourceProvider {
 		return $diffs;
 	}
 
+	/**
+	 * Resolve a secret reference using an ephemeral per-operation cache so shared
+	 * env:/file:/vault: references across thousands of devices resolve once.
+	 *
+	 * @param string $raw Raw secret reference or literal value.
+	 * @param SecretResolver $secrets Active secret resolver.
+	 * @param array<string, string> $cache Ephemeral local cache map.
+	 * @return string Resolved runtime secret value.
+	 */
+	private static function resolveSecretCached(string $raw, SecretResolver $secrets, array &$cache): string {
+		if (array_key_exists($raw, $cache)) {
+			return $cache[$raw];
+		}
+
+		return $cache[$raw] = $secrets->resolve($raw);
+	}
+
+	/**
+	 * Normalize a list or hash set of planned resource names into an O(1) lookup set.
+	 *
+	 * @param mixed $raw List of names or name => true hash set.
+	 * @return array<string, true> Hash set of non-empty resource names.
+	 */
+	private static function toNameSet(mixed $raw): array {
+		if (!is_array($raw)) {
+			return [];
+		}
+
+		$set = [];
+
+		foreach ($raw as $key => $value) {
+			if ($value === true && is_string($key) && $key !== '') {
+				$set[$key] = true;
+			} elseif (is_string($value) && $value !== '') {
+				$set[$value] = true;
+			}
+		}
+
+		return $set;
+	}
+
+	/**
+	 * Extract precomputed domain actions supplied by Applier::apply() when present.
+	 *
+	 * @param array<string, mixed> $options Apply options map.
+	 * @return list<PlanAction>|null Precomputed actions or null when standalone.
+	 */
+	private static function extractPlannedActions(array $options): ?array {
+		if (!isset($options['plannedActions']) || !is_array($options['plannedActions'])) {
+			return null;
+		}
+
+		$actions = [];
+
+		foreach ($options['plannedActions'] as $action) {
+			if ($action instanceof PlanAction) {
+				$actions[] = $action;
+			}
+		}
+
+		return $actions;
+	}
+
+	/**
+	 * Convert a scalar value to string, returning an empty string for non-scalars.
+	 *
+	 * @param mixed $value Candidate scalar value.
+	 * @return string String representation.
+	 */
 	private static function str(mixed $value): string {
 		return is_scalar($value) ? (string) $value : '';
 	}

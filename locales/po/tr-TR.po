@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Thomas Vincent <thomasvincent@gmail.com>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: casc 0.1.0\n"
+"Report-Msgid-Bugs-To: https://github.com/somethingwithproof/plugin_casc/issues\n"
+"PO-Revision-Date: 2026-11-28 00:00+0000\n"
+"Last-Translator: Thomas Vincent <thomasvincent@gmail.com>\n"
+"Language-Team: Turkish <https://translate.cacti.net/projects/cacti/core/tr/>\n"
+"Language: tr-TR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+
+#: casc_admin.php casc_operator.php
+msgid "No manifest file was uploaded."
+msgstr "Hiçbir bildirim dosyası yüklenmedi."
+
+#: casc_admin.php
+msgid "No matching pending plan was found in your session. Re-upload and plan again."
+msgstr "Oturumunuzda eşleşen bekleyen bir plan bulunamadı. Yeniden yükleyip tekrar planlayın."
+
+#: casc_admin.php
+#, php-format
+msgid "Applied CasC plan %s (%d actions)."
+msgstr "%s CasC planı uygulandı (%d işlem)."
+
+#: casc_admin.php
+msgid "CasC Plan & Apply (Administrator)"
+msgstr "CasC Planlama ve Uygulama (Yönetici)"
+
+#: casc_admin.php
+msgid "Upload YAML or XML Manifest:"
+msgstr "YAML veya XML Bildirim Dosyası Yükle:"
+
+#: casc_admin.php
+msgid "Compute Plan"
+msgstr "Planı Hesapla"
+
+#: casc_operator.php
+msgid "CasC Export & Drift Check (Read-Only)"
+msgstr "CasC Dışa Aktarma ve Sapma Denetimi (Salt Okunur)"
+
+#: casc_operator.php
+msgid "Export Format:"
+msgstr "Dışa Aktarma Biçimi:"
+
+#: casc_operator.php
+msgid "Export Redacted Manifest"
+msgstr "Maskelenmiş Bildirim Dosyasını Dışa Aktar"
+
+#: casc_operator.php
+msgid "Check Drift / Dry-Run Plan:"
+msgstr "Sapma Denetimi / Deneme Planı:"
+
+#: casc_operator.php
+msgid "Validate & Plan"
+msgstr "Doğrula ve Planla"
+
+#: casc_view.php
+msgid "Configuration as Code Status & Audit History"
+msgstr "Kod Olarak Yapılandırma Durumu ve Denetim Geçmişi"
+
+#: lib/Pages.php
+msgid "CasC View"
+msgstr "CasC Görüntüleme"
+
+#: lib/Pages.php
+msgid "CasC Operator"
+msgstr "CasC Operatörü"
+
+#: lib/Pages.php
+msgid "CasC Admin"
+msgstr "CasC Yöneticisi"
+
+#: lib/Pages.php
+msgid "CasC Status & Audit"
+msgstr "CasC Durumu ve Denetim"
+
+#: lib/Pages.php
+msgid "CasC Export & Drift"
+msgstr "CasC Dışa Aktarma ve Sapma"
+
+#: lib/Pages.php
+msgid "CasC Plan & Apply"
+msgstr "CasC Planlama ve Uygulama"
+
+#: lib/Settings.php
+msgid "Configuration as Code (CasC)"
+msgstr "Kod Olarak Yapılandırma (CasC)"
+
+#: lib/Settings.php
+msgid "Allowlisted Secret Directories"
+msgstr "İzin Verilen Gizli Bilgi Dizinleri"
+
+#: lib/Settings.php
+msgid "Colon-separated list of absolute directories permitted for file: secret references (files must be mode 0400 or 0600 with no symlinks)."
+msgstr "file: gizli bilgi başvuruları için izin verilen mutlak dizinlerin iki nokta üst üste ile ayrılmış listesi (dosyalar 0400 veya 0600 kipinde olmalı ve sembolik bağlantı içermemelidir)."
+
+#: lib/Settings.php
+msgid "Baseline Manifest Path"
+msgstr "Temel Bildirim Dosyası Yolu"
+
+#: lib/Settings.php
+msgid "Optional path to a declarative YAML or XML baseline manifest used by drift checks, Doctor checks, and MCP status abilities."
+msgstr "Sapma denetimleri, Doctor denetimleri ve MCP durum yetenekleri tarafından kullanılan beyana dayalı YAML veya XML temel bildirim dosyasının isteğe bağlı yolu."
+
+#: lib/Settings.php
+msgid "Keep Audit Tables on Uninstall"
+msgstr "Kaldırırken Denetim Tablolarını Koru"
+
+#: lib/Settings.php
+msgid "Preserve plugin_casc_audit and plugin_casc_plan tables when uninstalling the plugin."
+msgstr "Eklenti kaldırılırken plugin_casc_audit ve plugin_casc_plan tablolarını koru."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later. This server runs PHP %s, so the plugin was not installed or enabled."
+msgstr "CasC eklentisi PHP %s veya sonraki bir sürümü gerektirir. Bu sunucuda PHP %s çalıştığı için eklenti kurulmadı veya etkinleştirilmedi."
+
+#: setup.php
+msgid "Import/Export"
+msgstr "İçe/Dışa Aktar"
+
+#: setup.php
+msgid "CasC"
+msgstr "CasC"
+
+#: setup.php
+msgid "Configuration as Code"
+msgstr "Kod Olarak Yapılandırma"
+
+#: setup.php
+msgid "The CasC plugin is not enabled."
+msgstr "CasC eklentisi etkin değil."
+
+#: setup.php
+#, php-format
+msgid "The CasC plugin requires PHP %s or later."
+msgstr "CasC eklentisi PHP %s veya sonraki bir sürümü gerektirir."
